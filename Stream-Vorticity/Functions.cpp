@@ -7,7 +7,7 @@
 using namespace sf;
 using namespace std;
 
-void WriteArray(sf::Uint32 GridSize, const float * ArayToDebug)
+void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug)
 {
 	ofstream myfile;
 	myfile.open("array.csv");
@@ -17,8 +17,8 @@ void WriteArray(sf::Uint32 GridSize, const float * ArayToDebug)
 		for (Uint32 i = 0; i < GridSize; i++)
 		{
 			int Index = IJ(i, j);
-			float value = ArayToDebug[Index];
-			myfile << value << ",";
+			Real value = ArayToDebug[Index];
+			myfile << value << ";";
 		}
 
 		myfile << "\n";
@@ -27,263 +27,87 @@ void WriteArray(sf::Uint32 GridSize, const float * ArayToDebug)
 	myfile.close();
 }
 
-void DebugArray(sf::Uint32 GridSize, const float * ArayToDebug, sf::Uint8* Pixels)
+void mgls_prepare2v(const Real * phi, Real h, mglData *a, mglData *b)
 {
-	float HighestValue = numeric_limits<float>::min();
-	float LowestValue = numeric_limits<float>::max();
+	register long i, j, n = N, m = N;
+	if (a) a->Create(n, m);
+	if (b) b->Create(n, m);
 
-	for (Uint32 i = 0; i < GridSize; i++)
+	for (i = 0; i < n; i++)
 	{
-		for (Uint32 j = 0; j < GridSize; j++)
+		for (j = 0; j < m; j++)
 		{
-			int Index = IJ(i, j);
-			if (ArayToDebug[Index] > HighestValue)
-				HighestValue = ArayToDebug[Index];
-			if (ArayToDebug[Index] < LowestValue)
-				LowestValue = ArayToDebug[Index];
+			if (a)
+				mgl_data_set_value(a, IJ(i, j), (phi[IJ(i, j + 1)] - phi[IJ(i, j)]) / (2 * h), 0, 0);
+			if (b)
+				mgl_data_set_value(b, IJ(i, j), (phi[IJ(i + 1, j)] - phi[IJ(i, j)]) / (2 * h), 0, 0);
 		}
 	}
 
-	HighestValue = abs(LowestValue) + HighestValue;
-
-	for (Uint32 j = 0; j < GridSize; j++)
+	for (i = 1; i < n - 1; i++)
 	{
-		for (Uint32 i = 0; i < GridSize; i++)
+		for (j = 1; j < m - 1; j++)
 		{
-			Uint64 Index = IJ(i, j);
-			float NewValue = abs(LowestValue) + ArayToDebug[Index];
-			Uint8 Color = static_cast<Uint8>((NewValue * 255.0f) / HighestValue);
-
-			Pixels[Index * 4 + 0] = Color;
-			Pixels[Index * 4 + 1] = Color;
-			Pixels[Index * 4 + 2] = Color;
-			Pixels[Index * 4 + 3] = 255;
+			if (a)
+				mgl_data_set_value(a, IJ(i, j), (phi[IJ(i, j + 1)] - phi[IJ(i, j)]) / (2 * h), 0, 0);
+			if (b)
+				mgl_data_set_value(b, IJ(i, j), (phi[IJ(i + 1, j)] - phi[IJ(i, j)]) / (2 * h), 0, 0);
 		}
 	}
 }
 
-void SetBoundary(sf::Uint32 GridSize, float Value, EWall Wall, float * InArray)
+void Fill(mglData *a, const Real * InData, Real DataScaleFactor)
 {
-	int Index = 0;
+	register long i, j;
 
-	for (Uint32 i = 0; i < GridSize; i++)
+	if (a)
+		mgl_data_create(a, N, N, 1);
+
+	for (i = 0; i < N; i++)
 	{
-		if (Wall == EWall::EWall_Top)
-			Index = IJ(i, 0);
-		else if (Wall == EWall::EWall_Bottom)
-			Index = IJ(i, GridSize - 1);
-		else if (Wall == EWall::EWall_Left)
-			Index = IJ(GridSize - 1, i);
-		else if (Wall == EWall::EWall_Right)
-			Index = IJ(0, i);
-
-		InArray[Index] = Value;
-	}
-}
-
-void SetVelocityColor(Uint32 GridSize, const float* u, const float* v, float& HighestSqNorm, Uint8* Pixels)
-{
-	for (Uint32 i = 0; i < GridSize; i++)
-	{
-		for (Uint32 j = 0; j < GridSize; j++)
+		for (j = 0; j < N; j++)
 		{
-			Uint64 ij = IJ(i, j);
-			float SqNorm = u[ij] * u[ij] + v[ij] * v[ij];
-			Uint8 Color = static_cast<Uint8>((SqNorm * 255.0f) / HighestSqNorm);
-
-			Pixels[ij * 4 + 0] = Color;
-			Pixels[ij * 4 + 1] = Color;
-			Pixels[ij * 4 + 2] = Color;
-			Pixels[ij * 4 + 3] = 255;
+			if (a)
+				mgl_data_set_value(a, InData[IJ(i, j)] * DataScaleFactor, i, j, 0);
 		}
 	}
 }
 
-void DrawVelocities(sf::Uint32 GridSize, float SpriteScale, const float* u, const float* v, sf::RenderTexture& Canvas)
+int Plot(mglGraph *gr, Uint8* Pixels, Uint64 PixelsBufferSize, const Real * InData, Real DataScaleFactor)
 {
-	//float HighestSqNorm = 0.0f;
+	mglData a, b;
+	gr->ClearFrame();
+	Fill(&a, InData, DataScaleFactor);
+	gr->Box();
+	gr->Dens(a, "BbcyrR");
+	gr->Cont(a, "rb");
+	//=================================================
+	const Uint8 * data = mgl_get_rgba(gr->Self());
+	memcpy(Pixels, data, PixelsBufferSize * sizeof(Uint8));
 
-	//for (Uint32 j = 0; j < GridSize; j ++)
-	//{
-	//	for (Uint32 i = 0; i < GridSize; i++)
-	//	{
-	//		float SqNorm = u[IJ(i, j)] * u[IJ(i, j)] + v[IJ(i, j)] * v[IJ(i, j)];
-
-	//		if (SqNorm > HighestSqNorm)
-	//			HighestSqNorm = SqNorm;
-	//	}
-	//}
-
-	Uint32 Spacing = 2; //GridSize / HighestSqNorm;
-
-	for (Uint32 j = 0; j < GridSize; j += Spacing)
-	{
-		for (Uint32 i = 0; i < GridSize; i += Spacing)
-		{
-			VertexArray triangle(Lines, 2);
-			triangle[1].position = Vector2f(i * SpriteScale, j * SpriteScale);
-			triangle[0].position = Vector2f((i + u[IJ(i, j)]) * SpriteScale, (j + v[IJ(i, j)]) * SpriteScale);
-
-			triangle[0].color = Color::Red;
-			triangle[1].color = Color::Red;
-
-			Canvas.draw(triangle);
-		}
-	}
+	return 0;
 }
 
-void ProduceVorticity(Uint32 GridSize, float dx, float dy, const float* u, const float* v, float* omega)
+int Plot2(mglGraph *gr, Uint8* Pixels, Uint64 PixelsBufferSize, const Real * phi, const Real * omega)
 {
-	// Interior grid points
-	for (Uint32 j = 1; j < GridSize - 1; j++)
-	{
-		for (Uint32 i = 1; i < GridSize - 1; i++)
-			omega[IJ(i, j)] = -(u[IJ(i, j + 1)] - u[IJ(i, j - 1)]) / (2 * dy) + (v[IJ(i + 1, j)] - v[IJ(i - 1, j)]) / (2 * dx);
-	}
+	mglData a, b;
+	gr->ClearFrame();
 
-	// Top wall
-	for (Uint32 i = 0; i < GridSize; i++)
-		omega[IJ(i, 0)] = (u[IJ(i, 1)] - u[IJ(i, 0)]) / dy;
+	Fill(&a, phi, 10000.0f);
+	gr->SubPlot(2, 2, 0);
+	gr->Box();
+	gr->Dens(a, "BbcyrR");
+	gr->Cont(a, "rb", "21");
 
-	// Bottom wall
-	for (Uint32 i = 0; i < GridSize; i++)
-		omega[IJ(i, GridSize - 1)] = (u[IJ(i, GridSize - 1)] - u[IJ(i, GridSize - 2)]) / dy;
+	Fill(&b, omega, 1);
+	gr->SubPlot(2, 2, 1);
+	gr->Box();
+	gr->Dens(b, "BbcyrR");
+	gr->Cont(b, "rb");
 
-	// Left wall
-	for (Uint32 j = 0; j < GridSize; j++)
-		omega[IJ(0, j)] = (v[IJ(1, j)] - v[IJ(0, j)]) / dx;
+	//=================================================
+	const Uint8 * data = mgl_get_rgba(gr->Self());
+	memcpy(Pixels, data, PixelsBufferSize * sizeof(Uint8));
 
-	// Right wall
-	for (Uint32 j = 0; j < GridSize; j++)
-		omega[IJ(GridSize - 1, j)] = (v[IJ(GridSize - 1, j)] - v[IJ(GridSize - 2, j)]) / dx;
-}
-
-void IntegrateVorticity(sf::Uint32 GridSize, float ReynoldsNumber, float dx, float dy, float dt, const float* u, const float* v, float* omega, float* helper_omega)
-{
-	for (Uint32 j = 1; j < GridSize - 1; j++)
-	{
-		for (Uint32 i = 1; i < GridSize - 1; i++)
-		{
-			float Laplacian = (omega[IJ(i + 1, j)] - 2 * omega[IJ(i, j)] + omega[IJ(i - 1, j)]) / (dx*dx)
-				+ (omega[IJ(i, j + 1)] - 2 * omega[IJ(i, j)] + omega[IJ(i, j - 1)]) / (dy*dy);
-
-			helper_omega[IJ(i, j)] = omega[IJ(i, j)] +
-				dt * (-u[IJ(i, j)] * ((omega[IJ(i + 1, j)] - omega[IJ(i - 1, j)]) / (2 * dx))
-				- v[IJ(i, j)] * ((omega[IJ(i, j + 1)] - omega[IJ(i, j - 1)]) / (2 * dy))
-				+ (1.0f / ReynoldsNumber) * Laplacian);
-		}
-	}
-
-	memcpy(omega, helper_omega, GridSize * GridSize * sizeof(float));
-}
-
-void IntegrateStream(sf::Uint32 GridSize, float dx, float dy, float LidVelocity, const float* omega, float * psi, float * helper)
-{
-	for (Uint32 sor = 0; sor < 50; sor++)
-	{
-		memcpy(helper, psi, GridSize * GridSize * sizeof(float));
-
-		for (Uint32 j = 1; j < GridSize - 1; j++)
-		{
-			for (Uint32 i = 1; i < GridSize - 1; i++)
-			{
-				psi[IJ(i, j)] = (dy*dy * (helper[IJ(i + 1, j)] + helper[IJ(i - 1, j)]) + dx*dx *(helper[IJ(i, j + 1)] + helper[IJ(i, j - 1)]) - omega[IJ(i, j)] * dx*dx*dy*dy) / (2 * (dx*dx + dy*dy));
-			}
-		}
-	}
-}
-
-void CalculateVelocity(sf::Uint32 GridSize, float dx, float dy, float LidVelocity, const float * psi, float * u, float * v)
-{
-	SetBoundary(N, LidVelocity, EWall::EWall_Top, u);
-	SetBoundary(N, 0.0f, EWall::EWall_Bottom, u);
-	SetBoundary(N, 0.0f, EWall::EWall_Left, u);
-	SetBoundary(N, 0.0f, EWall::EWall_Right, u);
-
-	SetBoundary(N, 0.0f, EWall::EWall_Top, v);
-	SetBoundary(N, 0.0f, EWall::EWall_Bottom, v);
-	SetBoundary(N, 0.0f, EWall::EWall_Left, v);
-	SetBoundary(N, 0.0f, EWall::EWall_Right, v);
-
-	for (Uint32 j = 1; j < GridSize - 1; j++)
-	{
-		for (Uint32 i = 1; i < GridSize - 1; i++)
-		{
-			u[IJ(i, j)] = (psi[IJ(i, j + 1)] - psi[IJ(i, j - 1)]) / (2 * dy);
-			v[IJ(i, j)] = (psi[IJ(i - 1, j)] - psi[IJ(i + 1, j)]) / (2 * dx);
-		}
-	}
-}
-
-void PresureStabilization(sf::Uint32 GridSize, float rho, float dx, float dy, float dt, const float * u, const float * v, float * p, float * helper)
-{
-	for (Uint32 sor = 0; sor < 50; sor++)
-	{
-		memcpy(helper, p, GridSize * GridSize * sizeof(float));
-
-		for (Uint32 j = 1; j < GridSize - 1; j++)
-		{
-			for (Uint32 i = 1; i < GridSize - 1; i++)
-			{
-				p[IJ(i, j)] = (dy*dy * (helper[IJ(i + 1, j)] + helper[IJ(i - 1, j)]) + dx*dx *(helper[IJ(i, j + 1)] + helper[IJ(i, j - 1)])) / (2 * (dx*dx + dy*dy))
-					- (rho*(dx*dx)*(dy*dy)) / (2 * (dx*dx + dy*dy)) *
-					(1 / dt * ((u[IJ(i + 1, j)] - u[IJ(i - 1, j)]) / (2 * dx) + (v[IJ(i, j + 1)] - v[IJ(i, j - 1)]) / (2 * dy)) -
-					((u[IJ(i + 1, j)] - u[IJ(i - 1, j)]) / (2 * dx)) * ((u[IJ(i + 1, j)] - u[IJ(i - 1, j)]) / (2 * dx)) -
-					2 * ((u[IJ(i, j + 1)] - u[IJ(i, j - 1)]) / (2 * dy) * (v[IJ(i + 1, j)] - v[IJ(i - 1, j)]) / (2 * dx)) -
-					((v[IJ(i, j + 1)] - v[IJ(i, j - 1)]) / (2 * dy)) * ((v[IJ(i, j + 1)] - v[IJ(i, j - 1)]) / (2 * dy))
-					);
-			}
-		}
-
-		for (Uint32 i = 0; i < GridSize; i++)
-		{
-			//p[:,-1] =p[:,-2] ##dp/dy = 0 at x = 2
-			p[IJ(i, 0)] = p[IJ(i, 1)];
-
-			//p[0,:] = p[1,:]  ##dp/dy = 0 at y = 0
-			p[IJ(i, GridSize - 1)] = p[IJ(i, GridSize - 2)];
-
-			//p[:,0]=p[:,1]    ##dp/dx = 0 at x = 0
-			p[IJ(0, i)] = p[IJ(1, i)];
-
-			//p[-1,:]=0        ##p = 0 at y = 2
-			p[IJ(i, 0)] = 0;
-		}
-	}
-}
-
-void UpdateVelocity(sf::Uint32 GridSize, float dx, float dy, float dt, float LidVelocity, float rho, float nu, const float * p, float * u, float * v, float * un, float * vn)
-{
-	memcpy(un, u, GridSize * GridSize * sizeof(float));
-	memcpy(vn, v, GridSize * GridSize * sizeof(float));
-
-	for (Uint32 j = 1; j < GridSize - 1; j++)
-	{
-		for (Uint32 i = 1; i < GridSize - 1; i++)
-		{
-			u[IJ(i, j)] = un[IJ(i, j)] -
-				(un[IJ(i, j)] * (dt / dx)) * (un[IJ(i, j)] - un[IJ(i - 1, j)]) -
-				(vn[IJ(i, j)] * (dt / dy)) * (un[IJ(i, j)] - un[IJ(i, j - 1)]) -
-				dt / (2 * rho*dx)*(p[IJ(i + 1, j)] - p[IJ(i - 1, j)]) +
-				nu*(dt / (dx*dx))*(un[IJ(i + 1, j)] - 2 * un[IJ(i, j)] + un[IJ(i - 1, j)]) +
-				nu*(dt / (dy*dy))*(un[IJ(i, j + 1)] - 2 * un[IJ(i, j)] + un[IJ(i, j - 1)]);
-
-			v[IJ(i, j)] = vn[IJ(i, j)] -
-				(un[IJ(i, j)] * (dt / dx)) * (vn[IJ(i, j)] - vn[IJ(i - 1, j)]) -
-				(vn[IJ(i, j)] * (dt / dy)) * (vn[IJ(i, j)] - vn[IJ(i, j - 1)]) -
-				dt / (2 * rho*dy)*(p[IJ(i, j + 1)] - p[IJ(i, j - 1)]) +
-				nu*(dt / (dx*dx))*(vn[IJ(i + 1, j)] - 2 * vn[IJ(i, j)] + vn[IJ(i - 1, j)]) +
-				nu*(dt / (dy*dy))*(vn[IJ(i, j + 1)] - 2 * vn[IJ(i, j)] + vn[IJ(i, j - 1)]);
-		}
-	}
-
-	SetBoundary(GridSize, LidVelocity, EWall::EWall_Top, u);
-	SetBoundary(GridSize, 0.0f, EWall::EWall_Top, u);
-	SetBoundary(GridSize, 0.0f, EWall::EWall_Top, u);
-	SetBoundary(GridSize, 0.0f, EWall::EWall_Top, u);
-
-	SetBoundary(GridSize, 0.0f, EWall::EWall_Top, v);
-	SetBoundary(GridSize, 0.0f, EWall::EWall_Top, v);
-	SetBoundary(GridSize, 0.0f, EWall::EWall_Top, v);
-	SetBoundary(GridSize, 0.0f, EWall::EWall_Top, v);
+	return 0;
 }

@@ -13,4 +13,8 @@ Stream-Vorticity/Release/
 *.pdb
 *.user
 *.idb
+*.ipdb
+*.iobj
+*.iopendb
+*.opendb
 *.log
