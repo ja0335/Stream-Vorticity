@@ -7,10 +7,16 @@
 using namespace sf;
 using namespace std;
 
-void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug)
+void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug, Real Time, const char * Name)
 {
 	ofstream myfile;
-	myfile.open("array.csv");
+	myfile.open(Name);
+
+	myfile << "N=" << N 
+		<< "; REYNOLDS_NUMBER=" << REYNOLDS_NUMBER 
+		<< "; DT=" << DT
+		<< "; TIME=" << Time
+		<< std::endl;
 
 	for (Uint32 j = 0; j < GridSize; j++)
 	{
@@ -93,11 +99,11 @@ int Plot2(mglGraph *gr, Uint8* Pixels, Uint64 PixelsBufferSize, const Real * phi
 	mglData a, b;
 	gr->ClearFrame();
 
-	Fill(&a, phi, 10000.0f);
+	Fill(&a, phi, 1000);
 	gr->SubPlot(2, 2, 0);
 	gr->Box();
-	gr->Dens(a, "BbcyrR");
-	gr->Cont(a, "rb", "21");
+	//gr->Dens(a, "BbcyrR");
+	gr->Cont(a, "rb", "0.0, 0.1");
 
 	Fill(&b, omega, 1);
 	gr->SubPlot(2, 2, 1);

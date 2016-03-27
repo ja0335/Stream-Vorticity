@@ -4,7 +4,7 @@
 #include "Macros.h"
 
 
-void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug);
+void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug, Real Time, const char * Name = "array.csv");
 
 void mgls_prepare2v(const Real * phi, Real h, mglData *a, mglData *b);
 

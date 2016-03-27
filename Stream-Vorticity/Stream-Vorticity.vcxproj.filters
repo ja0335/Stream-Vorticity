@@ -32,5 +32,8 @@
     <ClInclude Include="termcolor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="matplotlibcpp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

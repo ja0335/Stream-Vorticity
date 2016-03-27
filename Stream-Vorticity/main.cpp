@@ -1,18 +1,19 @@
 #include <iostream>
+#include <sstream>
 #include "termcolor.h"
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
 #include <mgl2/mgl.h>
 #include "Functions.h"
-
+#include "matplotlibcpp.h"
 
 using namespace sf;
-
+namespace plt = matplotlibcpp;
 
 int main(int argc, char **argv)
 {
-	RenderWindow window(VideoMode(1920, 1080), "Navier Stokes");
-
+#if USE_CPP_PLOT
+	RenderWindow window(VideoMode(1024, 768), "Navier Stokes");
 	RenderTexture Canvas;
 	Texture DynamicTexture;
 	Sprite SpriteDynamicTexture;
@@ -22,18 +23,22 @@ int main(int argc, char **argv)
 	if (!DynamicTexture.create(PLOT_RESOLUTION, PLOT_RESOLUTION))
 		return EXIT_FAILURE;
 
-
 	SpriteDynamicTexture.setTexture(DynamicTexture);
 	DynamicTexture.setSmooth(false);
 	float SpriteScale = static_cast<float>(Canvas.getSize().x) / static_cast<float>(PLOT_RESOLUTION);
 	SpriteDynamicTexture.scale(SpriteScale, SpriteScale);
+	Uint64 PixelsBufferSize = PLOT_RESOLUTION * PLOT_RESOLUTION * 4;
+	mglGraph			gr(0, PLOT_RESOLUTION, PLOT_RESOLUTION);
+	Uint8* Pixels = new Uint8[PixelsBufferSize];	memset(Pixels, 0, PixelsBufferSize * sizeof(Uint8));
+#else
+	RenderWindow window(VideoMode(480, 320), "Navier Stokes");
+#endif
 
 	Clock clock;
 
 	// --------------------------------------------------------------------------------
 	// Set initial parameters
 	Real Viscocity = 1.0f / REYNOLDS_NUMBER;
-	Real LidSpeed = 1.0f;
 		
 	// relaxation factors
 	// SOR converges fastest for a square lattice if Beta = 2 / (1.0f + PI / L)
@@ -46,20 +51,17 @@ int main(int argc, char **argv)
 	// --------------------------------------------------------------------------------
 	// Data Buffers
 	Uint32 SizeOfData = sizeof(Real) * N * N;
-	Uint64 PixelsBufferSize = PLOT_RESOLUTION * PLOT_RESOLUTION * 4;
-	mglGraph			gr(0, PLOT_RESOLUTION, PLOT_RESOLUTION);
-	Uint8* Pixels =		new Uint8[PixelsBufferSize];	memset(Pixels, 0, PixelsBufferSize * sizeof(Uint8));
-	Real * phi =		new Real[N * N];				memset(phi, 0, SizeOfData);
-	Real * omega =	new Real[N * N];				memset(omega, 0, SizeOfData);
-	Real * w =		new Real[N * N];				memset(w, 0, SizeOfData);
+	Real * phi	=		new Real[N * N];				memset(phi, 0, SizeOfData);
+	Real * omega =		new Real[N * N];				memset(omega, 0, SizeOfData);
+	Real * w =			new Real[N * N];				memset(w, 0, SizeOfData);
 	
 	// run the program as long as the window is open
 	bool bSimulateNextFrame = false;
 	bool bUseKeyToSimulate = true;
-	Uint64 CurrentStep = 1;
+	Uint64 CurrentStep = 0;
 	Real SimulationTime = 0.0f;
 	Real RealSimulationTime = 0.0f;
-
+	
 	while (window.isOpen())
 	{
 		bSimulateNextFrame = false;
@@ -77,18 +79,27 @@ int main(int argc, char **argv)
 			if (Keyboard::isKeyPressed(Keyboard::Up))
 				bUseKeyToSimulate = !bUseKeyToSimulate;
 			if (Keyboard::isKeyPressed(Keyboard::Down))
-				WriteArray(N, phi);
+			{
+				std::stringstream ss_phi;
+				ss_phi << "phi_" << CurrentStep << ".csv";
+				//WriteArray(N, phi, ss_phi.str().c_str());
+				WriteArray(N, phi, SimulationTime, "phi.csv");
+
+				std::stringstream ss_omega;
+				ss_omega << "omega_" << CurrentStep << ".csv";
+				//WriteArray(N, omega, ss_omega.str().c_str());
+				WriteArray(N, omega, SimulationTime, "omega.csv");
+			}
 		}
 
 		if (bUseKeyToSimulate && !bSimulateNextFrame)
 			continue;
 		
 #if 1 // Stream-Vorticity Calculation
-		Canvas.clear(Color::Black);
 
 		// -------------------------------------------------------------------------
 		// streamfunction calculation by SOR iteration
-		for (int it = 0; it < MAXSOR_ITERATIONS; it++)
+		for (int it = 0; it < MAX_SOR_ITERATIONS; it++)
 		{
 			memcpy(w, phi, SizeOfData);
 
@@ -117,7 +128,7 @@ int main(int argc, char **argv)
 			for (int j = 0; j < N; j++)
 			{
 				omega[IJ(i, 0)] = -2.0f*phi[IJ(i, 1)] / (h*h); // bottom wall
-				omega[IJ(i, N - 1)] = -2.0f*phi[IJ(i, N - 2)] / (h*h) - LidSpeed * (2.0f / h); // top wall
+				omega[IJ(i, N - 1)] = -2.0f*phi[IJ(i, N - 2)] / (h*h) - LID_SPEED * (2.0f / h); // top wall
 				omega[IJ(0, j)] = -2.0f*phi[IJ(1, j)] / (h*h); // right wall
 				omega[IJ(N - 1, j)] = -2.0f*phi[IJ(N - 2, j)] / (h*h); // left wall
 			}
@@ -141,20 +152,35 @@ int main(int argc, char **argv)
 				omega[IJ(i, j)] = omega[IJ(i, j)] + DT*w[IJ(i, j)];
 		}
 
+#if CAPTURE_DATA
+		// -------------------------------------------------------------------------
+		// Capture data
+		std::stringstream ss_phi;
+		ss_phi << "Data/phi_" << CurrentStep << ".csv";
+		WriteArray(N, phi, SimulationTime, ss_phi.str().c_str());
+
+		std::stringstream ss_omega;
+		ss_omega << "Data/omega_" << CurrentStep << ".csv";
+		WriteArray(N, omega, SimulationTime, ss_omega.str().c_str());
+		// -------------------------------------------------------------------------
+#endif
+
 		// increment the time
 		SimulationTime += DT;
 		RealSimulationTime += clock.getElapsedTime().asSeconds();
+		CurrentStep++;
 #endif
 
-		if (SimulationTime >= 1.5f)
-		//if(CurrentStep >= 30)
+		//if (SimulationTime >= 1.5f)
+		if(CurrentStep >= 0)
 		{
+#if USE_CPP_PLOT
+			Canvas.clear(Color::Black);
 			Plot2(&gr, Pixels, PixelsBufferSize, phi, omega);
-
 			DynamicTexture.update(Pixels);
 			Canvas.draw(SpriteDynamicTexture);
 			Canvas.display();
-
+#endif
 			std::cout << termcolor::bold << termcolor::green
 				<< "Current step: " << CurrentStep << "\t"
 				<< "Step time: " << clock.getElapsedTime().asSeconds() << "\t"
@@ -170,7 +196,7 @@ int main(int argc, char **argv)
 				<< "Elapsed time: " << RealSimulationTime << "\n" << std::endl;
 		}
 
-#if 1 
+#if USE_CPP_PLOT
 		// --------------------------------------------------------
 		// Draw the final image result
 		window.clear(Color::Black);
@@ -196,14 +222,13 @@ int main(int argc, char **argv)
 
 		// end the current frame
 		window.display();
-		clock.restart();
-
 #endif
-		
-		CurrentStep++;
+		clock.restart();
 	}
 
+#if USE_CPP_PLOT
 	delete[] Pixels;
+#endif
 	delete[] omega;
 	delete[] phi;
 	delete[] w;
