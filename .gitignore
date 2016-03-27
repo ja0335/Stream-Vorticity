@@ -7,7 +7,9 @@ Stream-Vorticity/x64/Debug/
 Stream-Vorticity/Debug/
 Stream-Vorticity/x64/Release/
 Stream-Vorticity/Release/
-
+x64/bin/Release/Data/
+x64/bin/Debug/Data/
+*.mp4
 *.userprefs
 *.sdf
 *.pdb
