@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>0a89dc48-8935-48c7-a049-0929a5042c98</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>PythonDataPlot_Anim.py</StartupFile>
+    <StartupFile>PythonDataPlot.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

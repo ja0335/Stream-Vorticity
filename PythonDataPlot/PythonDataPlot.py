@@ -13,10 +13,10 @@ for PlotNum in xrange(2):
     PlotTittle = "";
 
     if PlotNum == 0:
-        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/bin/Release/Data/phi_60002.csv"));
+        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/bin/Release/Data/phi.csv"));
         PlotTittle = "Stream Function ";
     else:
-        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/bin/Release/Data/omega_60002.csv"));
+        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/bin/Release/Data/omega.csv"));
         PlotTittle = "Vorticity Function ";
         
     f = open(filepath);

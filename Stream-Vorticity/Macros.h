@@ -11,9 +11,8 @@
 #define DT 0.001f // time step
 
 #define SINGLE_PRECISION 0
+#define CAPTURE_DATA 0
 #define USE_CPP_PLOT 0
-#define CAPTURE_DATA 1
-
 #define PLOT_RESOLUTION 1024
 
 #define IJ(i, j) ((i) + N*(j))

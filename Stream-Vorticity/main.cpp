@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 	
 	// Spatial step
 	Real h = 1.0f / (Real)(N-1);
-	
+	Real h_sqr = h * h;
 	// --------------------------------------------------------------------------------
 	// Data Buffers
 	Uint32 SizeOfData = sizeof(Real) * N * N;
@@ -80,15 +80,16 @@ int main(int argc, char **argv)
 				bUseKeyToSimulate = !bUseKeyToSimulate;
 			if (Keyboard::isKeyPressed(Keyboard::Down))
 			{
+				std::cout << "*********Writing Data*********" << std::endl;
 				std::stringstream ss_phi;
-				ss_phi << "phi_" << CurrentStep << ".csv";
+				//ss_phi << "phi_" << CurrentStep << ".csv";
 				//WriteArray(N, phi, ss_phi.str().c_str());
-				WriteArray(N, phi, SimulationTime, "phi.csv");
+				WriteArray(N, phi, SimulationTime, "Data/phi.csv");
 
 				std::stringstream ss_omega;
-				ss_omega << "omega_" << CurrentStep << ".csv";
+				//ss_omega << "omega_" << CurrentStep << ".csv";
 				//WriteArray(N, omega, ss_omega.str().c_str());
-				WriteArray(N, omega, SimulationTime, "omega.csv");
+				WriteArray(N, omega, SimulationTime, "Data/omega.csv");
 			}
 		}
 
@@ -106,7 +107,7 @@ int main(int argc, char **argv)
 			for (int i = 1; i < N - 1; i++)
 			{
 				for (int j = 1; j < N - 1; j++)
-					phi[IJ(i, j)] = 0.25f*Beta*(phi[IJ(i + 1, j)] + phi[IJ(i - 1, j)] + phi[IJ(i, j + 1)] + phi[IJ(i, j - 1)] + h*h*omega[IJ(i, j)]) + (1.0f - Beta)*phi[IJ(i, j)];
+					phi[IJ(i, j)] = 0.25f*Beta*(phi[IJ(i + 1, j)] + phi[IJ(i - 1, j)] + phi[IJ(i, j + 1)] + phi[IJ(i, j - 1)] + h_sqr*omega[IJ(i, j)]) + (1.0f - Beta)*phi[IJ(i, j)];
 			}
 
 			Real Err = 0.0f;
@@ -125,13 +126,10 @@ int main(int argc, char **argv)
 		// boundary conditions for the Vorticity
 		for (int i = 0; i < N; i++)
 		{
-			for (int j = 0; j < N; j++)
-			{
-				omega[IJ(i, 0)] = -2.0f*phi[IJ(i, 1)] / (h*h); // bottom wall
-				omega[IJ(i, N - 1)] = -2.0f*phi[IJ(i, N - 2)] / (h*h) - LID_SPEED * (2.0f / h); // top wall
-				omega[IJ(0, j)] = -2.0f*phi[IJ(1, j)] / (h*h); // right wall
-				omega[IJ(N - 1, j)] = -2.0f*phi[IJ(N - 2, j)] / (h*h); // left wall
-			}
+			omega[IJ(i, 0)]		= -2.0f*phi[IJ(i, 1)]		/ h_sqr; // bottom wall
+			omega[IJ(i, N - 1)] = -2.0f*phi[IJ(i, N - 2)]	/ h_sqr - LID_SPEED * (2.0f / h); // top wall
+			omega[IJ(0, i)]		= -2.0f*phi[IJ(1, i)]		/ h_sqr; // right wall
+			omega[IJ(N - 1, i)] = -2.0f*phi[IJ(N - 2, i)]	/ h_sqr; // left wall
 		}
 		// --------------------------------------------------------------------------
 		// RHS Calculation
@@ -140,8 +138,8 @@ int main(int argc, char **argv)
 			for (int j = 1; j < N - 1; j++)
 			{
 				w[IJ(i, j)] = -0.25f*((phi[IJ(i, j + 1)] - phi[IJ(i, j - 1)])*(omega[IJ(i + 1, j)] - omega[IJ(i - 1, j)])
-					- (phi[IJ(i + 1, j)] - phi[IJ(i - 1, j)])*(omega[IJ(i, j + 1)] - omega[IJ(i, j - 1)])) / (h*h)
-					+ Viscocity * (omega[IJ(i + 1, j)] + omega[IJ(i - 1, j)] + omega[IJ(i, j + 1)] + omega[IJ(i, j - 1)] - 4.0f*omega[IJ(i, j)]) / (h*h);
+					- (phi[IJ(i + 1, j)] - phi[IJ(i - 1, j)])*(omega[IJ(i, j + 1)] - omega[IJ(i, j - 1)])) / h_sqr
+					+ Viscocity * (omega[IJ(i + 1, j)] + omega[IJ(i - 1, j)] + omega[IJ(i, j + 1)] + omega[IJ(i, j - 1)] - 4.0f*omega[IJ(i, j)]) / h_sqr;
 			}
 		}
 		// -------------------------------------------------------------------------
