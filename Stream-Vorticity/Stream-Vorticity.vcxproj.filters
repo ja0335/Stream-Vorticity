@@ -23,6 +23,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cuda_kernels.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Functions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -32,8 +35,10 @@
     <ClInclude Include="termcolor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="matplotlibcpp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="cuda_kernels.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

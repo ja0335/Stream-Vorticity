@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>0a89dc48-8935-48c7-a049-0929a5042c98</ProjectGuid>
+    <ProjectGuid>6358dbbf-03ce-4d83-9fdb-c7746f688c9e</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <StartupFile>PythonDataPlot.py</StartupFile>
     <SearchPath>

@@ -12,8 +12,8 @@ void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug, Real Time, const 
 	ofstream myfile;
 	myfile.open(Name);
 
-	myfile << "N=" << N 
-		<< "; REYNOLDS_NUMBER=" << REYNOLDS_NUMBER 
+	myfile << "GRID_SIZE=" << GRID_SIZE
+		<< "; REYNOLDS_NUMBER=" << REYNOLDS_NUMBER
 		<< "; DT=" << DT
 		<< "; TIME=" << Time
 		<< std::endl;
@@ -35,7 +35,7 @@ void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug, Real Time, const 
 
 void mgls_prepare2v(const Real * phi, Real h, mglData *a, mglData *b)
 {
-	register long i, j, n = N, m = N;
+	register long i, j, n = GRID_SIZE, m = GRID_SIZE;
 	if (a) a->Create(n, m);
 	if (b) b->Create(n, m);
 
@@ -67,11 +67,11 @@ void Fill(mglData *a, const Real * InData, Real DataScaleFactor)
 	register long i, j;
 
 	if (a)
-		mgl_data_create(a, N, N, 1);
+		mgl_data_create(a, GRID_SIZE, GRID_SIZE, 1);
 
-	for (i = 0; i < N; i++)
+	for (i = 0; i < GRID_SIZE; i++)
 	{
-		for (j = 0; j < N; j++)
+		for (j = 0; j < GRID_SIZE; j++)
 		{
 			if (a)
 				mgl_data_set_value(a, InData[IJ(i, j)] * DataScaleFactor, i, j, 0);

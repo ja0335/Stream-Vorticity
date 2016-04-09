@@ -82,7 +82,7 @@ def animate(i):
     print "Finished writing frame"+ str(i) + ". Elapsed time: " + str(time.time() - t0);
     
     return contour1, contour2;
-	
+
 
 anim = animation.FuncAnimation(fig, animate, frames=60002);
 anim.save('Stream-Vorticity.mp4', fps=30, writer="ffmpeg", codec="libx264");

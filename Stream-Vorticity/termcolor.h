@@ -61,360 +61,360 @@ namespace termcolor
 	inline
 		std::ostream& reset(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[00m";
+				stream << "\033[00m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream, -1, -1);
+				__internal::win_change_attributes(stream, -1, -1);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 
 	inline
 		std::ostream& bold(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[1m";
+				stream << "\033[1m";
 #elif defined(OS_WINDOWS)
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 
 	inline
 		std::ostream& dark(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[2m";
+				stream << "\033[2m";
 #elif defined(OS_WINDOWS)
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 
 	inline
 		std::ostream& underline(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[4m";
+				stream << "\033[4m";
 #elif defined(OS_WINDOWS)
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 
 	inline
 		std::ostream& blink(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[5m";
+				stream << "\033[5m";
 #elif defined(OS_WINDOWS)
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 
 	inline
 		std::ostream& reverse(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[7m";
+				stream << "\033[7m";
 #elif defined(OS_WINDOWS)
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 
 	inline
 		std::ostream& concealed(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[8m";
+				stream << "\033[8m";
 #elif defined(OS_WINDOWS)
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 
 	inline
 		std::ostream& grey(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[30m";
+				stream << "\033[30m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream,
-				0   // grey (black)
-				);
+				__internal::win_change_attributes(stream,
+					0   // grey (black)
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& red(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[31m";
+				stream << "\033[31m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream,
-				FOREGROUND_RED
-				);
+				__internal::win_change_attributes(stream,
+					FOREGROUND_RED
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& green(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[32m";
+				stream << "\033[32m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream,
-				FOREGROUND_GREEN
-				);
+				__internal::win_change_attributes(stream,
+					FOREGROUND_GREEN
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& yellow(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[33m";
+				stream << "\033[33m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream,
-				FOREGROUND_GREEN | FOREGROUND_RED
-				);
+				__internal::win_change_attributes(stream,
+					FOREGROUND_GREEN | FOREGROUND_RED
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& blue(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[34m";
+				stream << "\033[34m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream,
-				FOREGROUND_BLUE
-				);
+				__internal::win_change_attributes(stream,
+					FOREGROUND_BLUE
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& magenta(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[35m";
+				stream << "\033[35m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream,
-				FOREGROUND_BLUE | FOREGROUND_RED
-				);
+				__internal::win_change_attributes(stream,
+					FOREGROUND_BLUE | FOREGROUND_RED
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& cyan(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[36m";
+				stream << "\033[36m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream,
-				FOREGROUND_BLUE | FOREGROUND_GREEN
-				);
+				__internal::win_change_attributes(stream,
+					FOREGROUND_BLUE | FOREGROUND_GREEN
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& white(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[37m";
+				stream << "\033[37m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream,
-				FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED
-				);
+				__internal::win_change_attributes(stream,
+					FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 
 
 	inline
 		std::ostream& on_grey(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[40m";
+				stream << "\033[40m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream, -1,
-				0   // grey (black)
-				);
+				__internal::win_change_attributes(stream, -1,
+					0   // grey (black)
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& on_red(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[41m";
+				stream << "\033[41m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream, -1,
-				BACKGROUND_RED
-				);
+				__internal::win_change_attributes(stream, -1,
+					BACKGROUND_RED
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& on_green(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[42m";
+				stream << "\033[42m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream, -1,
-				BACKGROUND_GREEN
-				);
+				__internal::win_change_attributes(stream, -1,
+					BACKGROUND_GREEN
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& on_yellow(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[43m";
+				stream << "\033[43m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream, -1,
-				BACKGROUND_GREEN | BACKGROUND_RED
-				);
+				__internal::win_change_attributes(stream, -1,
+					BACKGROUND_GREEN | BACKGROUND_RED
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& on_blue(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[44m";
+				stream << "\033[44m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream, -1,
-				BACKGROUND_BLUE
-				);
+				__internal::win_change_attributes(stream, -1,
+					BACKGROUND_BLUE
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& on_magenta(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[45m";
+				stream << "\033[45m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream, -1,
-				BACKGROUND_BLUE | BACKGROUND_RED
-				);
+				__internal::win_change_attributes(stream, -1,
+					BACKGROUND_BLUE | BACKGROUND_RED
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& on_cyan(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[46m";
+				stream << "\033[46m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream, -1,
-				BACKGROUND_GREEN | BACKGROUND_BLUE
-				);
+				__internal::win_change_attributes(stream, -1,
+					BACKGROUND_GREEN | BACKGROUND_BLUE
+					);
 #endif
+			}
+			return stream;
 		}
-		return stream;
-	}
 
 	inline
 		std::ostream& on_white(std::ostream& stream)
 	{
-		if (__internal::is_atty(stream))
-		{
+			if (__internal::is_atty(stream))
+			{
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			stream << "\033[47m";
+				stream << "\033[47m";
 #elif defined(OS_WINDOWS)
-			__internal::win_change_attributes(stream, -1,
-				BACKGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED
-				);
+				__internal::win_change_attributes(stream, -1,
+					BACKGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_RED
+					);
 #endif
-		}
+			}
 
-		return stream;
-	}
+			return stream;
+		}
 
 
 
@@ -430,13 +430,13 @@ namespace termcolor
 		inline
 			FILE* get_standard_stream(const std::ostream& stream)
 		{
-			if (&stream == &std::cout)
-				return stdout;
-			else if ((&stream == &std::cerr) || (&stream == &std::clog))
-				return stderr;
+				if (&stream == &std::cout)
+					return stdout;
+				else if ((&stream == &std::cerr) || (&stream == &std::clog))
+					return stderr;
 
-			return nullptr;
-		}
+				return nullptr;
+			}
 
 
 		//! Test whether a given `std::ostream` object refers to
@@ -444,14 +444,14 @@ namespace termcolor
 		inline
 			bool is_atty(const std::ostream& stream)
 		{
-			FILE* std_stream = get_standard_stream(stream);
+				FILE* std_stream = get_standard_stream(stream);
 
 #if defined(OS_MACOS) || defined(OS_LINUX)
-			return ::isatty(fileno(std_stream));
+				return ::isatty(fileno(std_stream));
 #elif defined(OS_WINDOWS)
-			return ::_isatty(_fileno(std_stream));
+				return ::_isatty(_fileno(std_stream));
 #endif
-		}
+			}
 
 
 #if defined(OS_WINDOWS)

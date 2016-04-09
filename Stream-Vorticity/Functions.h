@@ -1,4 +1,6 @@
-#pragma once
+#ifndef _FUNCTIONS_H_
+#define _FUNCTIONS_H_
+
 #include <SFML/Graphics.hpp>
 #include <mgl2/mgl.h>
 #include "Macros.h"
@@ -19,3 +21,5 @@ void Fill(mglData *a, const Real * InData, Real DataScaleFactor = 1.0f);
 int Plot(mglGraph *gr, sf::Uint8* Pixels, sf::Uint64 PixelsBufferSize, const Real * InData, Real DataScaleFactor = 1.0f);
 
 int Plot2(mglGraph *gr, sf::Uint8* Pixels, sf::Uint64 PixelsBufferSize, const Real * phi, const Real * omega);
+
+#endif

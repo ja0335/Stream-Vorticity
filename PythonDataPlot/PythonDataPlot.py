@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+
 basepath = os.path.dirname(__file__)
 plt.figure()
 
@@ -13,10 +14,10 @@ for PlotNum in xrange(2):
     PlotTittle = "";
 
     if PlotNum == 0:
-        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/bin/Release/Data/phi.csv"));
+        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/Release/Data/phi.csv"));
         PlotTittle = "Stream Function ";
     else:
-        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/bin/Release/Data/omega.csv"));
+        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/Release/Data/omega.csv"));
         PlotTittle = "Vorticity Function ";
         
     f = open(filepath);
@@ -61,7 +62,7 @@ for PlotNum in xrange(2):
     plt.subplot(1, 2, PlotNum+1);
     plt.title(PlotTittle);
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.contour(X, Y, Z, levels);
+    plt.contour(X, Y, Z, levels, linewidths=(0.1, 0.2, 0.3, 0.4, 0.5));
 
 
 plt.show()
