@@ -4,7 +4,7 @@ import sys;
 from mpl_toolkits.mplot3d import Axes3D;
 import numpy as np;
 import matplotlib.pyplot as plt;
-
+from matplotlib import cm;
 
 
 basepath = os.path.dirname(__file__)
@@ -60,10 +60,11 @@ for PlotNum in xrange(2):
     f.close();
     
     levels = np.linspace(MinValue, MaxValue, 1000);
-    plt.subplot(1, 2, PlotNum+1);
+    ax = fig.add_subplot(1, 2, PlotNum+1, projection='3d')
     plt.title(PlotTittle);
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.contour(X, Y, Z, levels, linewidths=(0.1, 0.2, 0.3, 0.4, 0.5));
+    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, linewidth=0, antialiased=False);
+    ax.set_zlim3d(-1.01, 1.01)
 
 
 plt.show()

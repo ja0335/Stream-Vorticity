@@ -12,7 +12,7 @@
 #define REYNOLDS_NUMBER 10000.0f
 #define MAX_SOR_ITERATIONS 100
 #define SOR_TOLERANCE_ERROR 0.001f
-#define DT 0.005f // time step
+#define DT 0.001f // time step
 
 #define CAPTURE_DATA 0
 #define SINGLE_PRECISION 0
