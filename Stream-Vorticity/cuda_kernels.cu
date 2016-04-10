@@ -124,6 +124,20 @@ void DeviceQuery()
 }
 
 // -------------------------------------------------------------------------
+void CopyDataFromHostToDevice(Real * Data_h, Real * Data_d)
+{
+	sf::Uint64 size = GRID_SIZE * GRID_SIZE * sizeof(Real);
+
+	cudaMemcpy(Data_d, Data_h, size, cudaMemcpyHostToDevice);
+}
+
+void CopyDataFromDeviceToHost(Real * Data_h, Real * Data_d)
+{
+	sf::Uint64 size = GRID_SIZE * GRID_SIZE * sizeof(Real);
+
+	cudaMemcpy(Data_d, Data_h, size, cudaMemcpyDeviceToHost);
+}
+
 void CopyDataFromHostToDevice(
 	Real * omega,
 	Real * omega_d,
@@ -142,6 +156,10 @@ void CopyDataFromHostToDevice(
 void CopyDataFromDeviceToHost(
 	Real * omega,
 	Real * omega_d,
+	Real * u,
+	Real * u_d,
+	Real * v,
+	Real * v_d,
 	Real * phi,
 	Real * phi_d,
 	Real * w,
@@ -153,6 +171,8 @@ void CopyDataFromDeviceToHost(
 
 	cudaMemcpy(omega, omega_d, size, cudaMemcpyDeviceToHost);
 	cudaMemcpy(phi, phi_d, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(u, u_d, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(v, v_d, size, cudaMemcpyDeviceToHost);
 	cudaMemcpy(w, w_d, size, cudaMemcpyDeviceToHost);
 }
 
@@ -208,7 +228,7 @@ void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDevice
 }
 
 // -------------------------------------------------------------------------
-__global__ void UpdateVorticity_kernel(Real * omega, Real * phi, Real * w, Real h, Real Viscocity)
+__global__ void UpdateVorticity_kernel(Real * omega, Real * u, Real * v, Real * phi, Real * w, Real h, Real Viscocity)
 {
 	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
 
@@ -233,8 +253,11 @@ __global__ void UpdateVorticity_kernel(Real * omega, Real * phi, Real * w, Real 
 	{
 		// --------------------------------------------------------------------------
 		// RHS Calculation
-		w[idx] = -0.25f*((phi[idx + GRID_SIZE] - phi[idx - GRID_SIZE])*(omega[idx + 1] - omega[idx - 1])
-			- (phi[idx + 1] - phi[idx - 1])*(omega[idx + GRID_SIZE] - omega[idx - GRID_SIZE])) / (h*h)
+		u[idx] =  (phi[idx + GRID_SIZE] - phi[idx - GRID_SIZE]) / (2 * h);
+		v[idx] = -(phi[idx + 1] - phi[idx - 1]) / (2 * h);
+
+		w[idx] = - ( u[idx] * ((omega[idx + 1] - omega[idx - 1]) / (2 * h))
+				   + v[idx] * ((omega[idx + GRID_SIZE] - omega[idx - GRID_SIZE]) / (2 * h)))
 			+ Viscocity * (omega[idx + 1] + omega[idx - 1] + omega[idx + GRID_SIZE] + omega[idx - GRID_SIZE] - 4.0f*omega[idx]) / (h*h);
 	}
 
@@ -253,6 +276,8 @@ __global__ void UpdateVorticity_kernel(Real * omega, Real * phi, Real * w, Real 
 
 void UpdateVorticity(
 	Real * omega_d,
+	Real * u_d,
+	Real * v_d,
 	Real * phi_d,
 	Real * w_d,
 	Real h,
@@ -265,7 +290,7 @@ void UpdateVorticity(
 
 	dim3 ThreadsPerBlock(sqrt(CudaDeviceProp.maxThreadsPerBlock), sqrt(CudaDeviceProp.maxThreadsPerBlock));
 
-	UpdateVorticity_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, w_d, h, Viscocity);
+	UpdateVorticity_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, u_d, v_d, phi_d, w_d, h, Viscocity);
 	cudaDeviceSynchronize();
 }
 

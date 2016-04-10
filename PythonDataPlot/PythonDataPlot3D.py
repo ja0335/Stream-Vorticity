@@ -1,4 +1,4 @@
-import os;
+﻿import os;
 import os.path;
 import sys;
 from mpl_toolkits.mplot3d import Axes3D;
@@ -17,7 +17,10 @@ for PlotNum in xrange(2):
     if PlotNum == 0:
         filepath = os.path.abspath(os.path.join(basepath, "..", "x64/Release/Data/phi.csv"));
         PlotTittle = "Stream Function ";
-    else:
+    elif PlotNum == 1:
+        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/Release/Data/omega.csv"));
+        PlotTittle = "Vorticity Function ";
+    elif PlotNum == 1:
         filepath = os.path.abspath(os.path.join(basepath, "..", "x64/Release/Data/omega.csv"));
         PlotTittle = "Vorticity Function ";
         

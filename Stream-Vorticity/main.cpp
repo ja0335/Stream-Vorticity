@@ -51,6 +51,8 @@ int main(int argc, char **argv)
 	// --------------------------------------------------------------------------------
 	// Data Buffers
 	Uint32 SizeOfData = sizeof(Real)* GRID_SIZE * GRID_SIZE;
+	Real * u = new Real[GRID_SIZE * GRID_SIZE];					memset(u, 0, SizeOfData);
+	Real * v = new Real[GRID_SIZE * GRID_SIZE];					memset(v, 0, SizeOfData);
 	Real * phi = new Real[GRID_SIZE * GRID_SIZE];				memset(phi, 0, SizeOfData);
 	Real * omega = new Real[GRID_SIZE * GRID_SIZE];				memset(omega, 0, SizeOfData);
 	Real * w = new Real[GRID_SIZE * GRID_SIZE];					memset(w, 0, SizeOfData);
@@ -65,10 +67,14 @@ int main(int argc, char **argv)
 	cudaDeviceProp CudaDeviceProp;
 	cudaGetDeviceProperties(&CudaDeviceProp, CudaDevice);
 
+	Real * u_d;
+	Real * v_d;
 	Real * phi_d;
 	Real * omega_d;
 	Real * w_d;
 
+	cudaMalloc((void **)&u_d, SizeOfData);		cudaMemset(u_d, 0, SizeOfData);
+	cudaMalloc((void **)&v_d, SizeOfData);		cudaMemset(v_d, 0, SizeOfData);
 	cudaMalloc((void **)&phi_d, SizeOfData);	cudaMemset(phi_d, 0, SizeOfData);
 	cudaMalloc((void **)&omega_d, SizeOfData);	cudaMemset(omega_d, 0, SizeOfData);
 	cudaMalloc((void **)&w_d, SizeOfData);		cudaMemset(w_d, 0, SizeOfData);
@@ -102,8 +108,14 @@ int main(int argc, char **argv)
 			{
 				std::cout << "*********Writing Data*********" << std::endl;
 #if USE_CUDA
-				CopyDataFromDeviceToHost(omega, omega_d, phi, phi_d, w, w_d);
+				CopyDataFromDeviceToHost(omega, omega_d, u, u_d, v, v_d, phi, phi_d, w, w_d);
 #endif
+				std::stringstream ss_u;
+				WriteArray(GRID_SIZE, u, SimulationTime, "Data/u.csv");
+
+				std::stringstream ss_v;
+				WriteArray(GRID_SIZE, v, SimulationTime, "Data/v.csv");
+
 				std::stringstream ss_phi;
 				//ss_phi << "phi_" << CurrentStep << ".csv";
 				//WriteArray(GRID_SIZE, phi, ss_phi.str().c_str());
@@ -130,7 +142,7 @@ int main(int argc, char **argv)
 			SOR(omega_d, phi_d, w_d, h, Beta, CudaDeviceProp);
 		}
 
-		UpdateVorticity(omega_d, phi_d, w_d, h, Viscocity, CudaDeviceProp);
+		UpdateVorticity(omega_d, u_d, v_d, phi_d, w_d, h, Viscocity, CudaDeviceProp);
 
 #else
 		// -------------------------------------------------------------------------
@@ -220,10 +232,15 @@ int main(int argc, char **argv)
 #if USE_CPP_PLOT
 		Canvas.clear(Color::Black);
 #if USE_CUDA
-		CopyDataFromDeviceToHost(omega, omega_d, phi, phi_d, w, w_d);
+		//CopyDataFromDeviceToHost(omega, omega_d, phi, phi_d, w, w_d);
+		//Real MinValue, MaxValue;
+		//GetMinMaxValues(GRID_SIZE, phi, MinValue, MaxValue);
+		//FillPixels(Pixels, Pixels_d, phi_d, MinValue, MaxValue, CudaDeviceProp);
+
+		CopyDataFromDeviceToHost(v, v_d);
 		Real MinValue, MaxValue;
-		GetMinMaxValues(GRID_SIZE, phi, MinValue, MaxValue);
-		FillPixels(Pixels, Pixels_d, phi_d, MinValue, MaxValue, CudaDeviceProp);
+		GetMinMaxValues(GRID_SIZE, v, MinValue, MaxValue);
+		FillPixels(Pixels, Pixels_d, v_d, MinValue, MaxValue, CudaDeviceProp);
 #else
 		Plot(GRID_SIZE, Pixels, phi);
 #endif
@@ -260,8 +277,10 @@ int main(int argc, char **argv)
 	}
 
 #if USE_CUDA
-	cudaFree(omega_d);
+	cudaFree(u_d);
+	cudaFree(v_d);
 	cudaFree(phi_d);
+	cudaFree(omega_d);
 	cudaFree(w_d);
 #endif
 #if USE_CPP_PLOT
@@ -270,8 +289,10 @@ int main(int argc, char **argv)
 	cudaFree(Pixels_d);
 #endif
 #endif
-	delete[] omega;
+	delete[] u;
+	delete[] v;
 	delete[] phi;
+	delete[] omega;
 	delete[] w;
 
 	return 0;

@@ -8,6 +8,10 @@
 
 void DeviceQuery();
 
+void CopyDataFromHostToDevice(Real * Data_h, Real * Data_d);
+
+void CopyDataFromDeviceToHost(Real * Data_h, Real * Data_d);
+
 void CopyDataFromHostToDevice(
 	Real * omega,
 	Real * omega_d,
@@ -19,6 +23,10 @@ void CopyDataFromHostToDevice(
 void CopyDataFromDeviceToHost(
 	Real * omega,
 	Real * omega_d,
+	Real * u,
+	Real * u_d,
+	Real * v,
+	Real * v_d,
 	Real * phi,
 	Real * phi_d,
 	Real * w,
@@ -28,6 +36,8 @@ void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDevice
 
 void UpdateVorticity(
 	Real * omega_d,
+	Real * u_d,
+	Real * v_d,
 	Real * phi_d,
 	Real * w_d,
 	Real h,
