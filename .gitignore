@@ -21,3 +21,4 @@ x64/bin/Debug/Data/
 *.opendb
 *.log
 *.csv
+*.opensdf

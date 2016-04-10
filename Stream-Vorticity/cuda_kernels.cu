@@ -268,3 +268,40 @@ void UpdateVorticity(
 	UpdateVorticity_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, w_d, h, Viscocity);
 	cudaDeviceSynchronize();
 }
+
+// -------------------------------------------------------------------------
+__global__ void FillPixels_kernel(sf::Uint8* Pixels, const Real * InData, Real MinValue, Real MaxValue)
+{
+	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
+
+	if (idx >= GRID_SIZE * GRID_SIZE)
+		return;
+
+	MaxValue -= MinValue;
+	Real HelperValue = InData[idx] - MinValue;
+	HelperValue = (HelperValue * 255) / MaxValue;
+
+	Pixels[idx * 4 + 0] = HelperValue;
+	Pixels[idx * 4 + 1] = HelperValue;
+	Pixels[idx * 4 + 2] = HelperValue;
+	Pixels[idx * 4 + 3] = 255;
+}
+
+void FillPixels(
+	sf::Uint8* Pixels_h,
+	sf::Uint8* Pixels_d,
+	Real * Data_d,
+	Real MinValue,
+	Real MaxValue,
+	cudaDeviceProp CudaDeviceProp)
+{
+	int NumBlocks = ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock));
+	//We need at least 1 block
+	NumBlocks = (NumBlocks == 0) ? 1 : NumBlocks;
+
+	dim3 ThreadsPerBlock(sqrt(CudaDeviceProp.maxThreadsPerBlock), sqrt(CudaDeviceProp.maxThreadsPerBlock));
+
+	FillPixels_kernel << <NumBlocks, ThreadsPerBlock >> >(Pixels_d, Data_d, MinValue, MaxValue);
+
+	cudaMemcpy(Pixels_h, Pixels_d, GRID_SIZE * GRID_SIZE * 4 * sizeof(sf::Uint8), cudaMemcpyDeviceToHost);
+}

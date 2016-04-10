@@ -34,4 +34,12 @@ void UpdateVorticity(
 	Real Viscocity,
 	cudaDeviceProp CudaDeviceProp);
 
+void FillPixels(
+	sf::Uint8* Pixels_h,
+	sf::Uint8* Pixels_d,
+	Real * Data_d,
+	Real MinValue,
+	Real MaxValue,
+	cudaDeviceProp CudaDeviceProp);
+
 #endif

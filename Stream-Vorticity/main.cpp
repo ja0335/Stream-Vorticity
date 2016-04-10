@@ -3,7 +3,6 @@
 #include "termcolor.h"
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
-#include <mgl2/mgl.h>
 #include "Functions.h"
 #ifdef USE_CUDA
 #include "cuda_kernels.h"
@@ -20,7 +19,7 @@ int main(int argc, char **argv)
 
 	if (!Canvas.create(2048, 2048))
 		return EXIT_FAILURE;
-	if (!DynamicTexture.create(PLOT_RESOLUTION, PLOT_RESOLUTION))
+	if (!DynamicTexture.create(GRID_SIZE, GRID_SIZE))
 		return EXIT_FAILURE;
 
 	SpriteDynamicTexture.setTexture(DynamicTexture);
@@ -28,8 +27,11 @@ int main(int argc, char **argv)
 	float SpriteScale = static_cast<float>(Canvas.getSize().x) / static_cast<float>(PLOT_RESOLUTION);
 	SpriteDynamicTexture.scale(SpriteScale, SpriteScale);
 	Uint64 PixelsBufferSize = PLOT_RESOLUTION * PLOT_RESOLUTION * 4;
-	mglGraph			gr(0, PLOT_RESOLUTION, PLOT_RESOLUTION);
 	Uint8* Pixels = new Uint8[PixelsBufferSize];	memset(Pixels, 0, PixelsBufferSize * sizeof(Uint8));
+#if USE_CUDA
+	Uint8* Pixels_d;
+	cudaMalloc((void **)&Pixels_d, PixelsBufferSize * sizeof(Uint8));	cudaMemset(Pixels_d, 255, PixelsBufferSize * sizeof(Uint8));
+#endif
 #else
 	RenderWindow window(VideoMode(480, 320), "Navier Stokes");
 #endif
@@ -123,7 +125,7 @@ int main(int argc, char **argv)
 #if USE_CUDA
 		// -------------------------------------------------------------------------
 		// streamfunction calculation by SOR iteration
-		for (int it = 0; it < 1; it++)
+		for (Uint64 it = 0; it < 1; it++)
 		{
 			SOR(omega_d, phi_d, w_d, h, Beta, CudaDeviceProp);
 		}
@@ -184,7 +186,7 @@ int main(int argc, char **argv)
 				omega[IJ(i, j)] = omega[IJ(i, j)] + DT*w[IJ(i, j)];
 		}
 #endif
-
+		
 #if CAPTURE_DATA
 		// -------------------------------------------------------------------------
 		// Capture data
@@ -205,7 +207,6 @@ int main(int argc, char **argv)
 		SimulationTime += DT;
 		CurrentStep++;
 #endif
-		if (CurrentStep % 2000 == 0)
 		{
 			std::cout
 				<< "Current step: " << CurrentStep << "\t"
@@ -220,8 +221,12 @@ int main(int argc, char **argv)
 		Canvas.clear(Color::Black);
 #if USE_CUDA
 		CopyDataFromDeviceToHost(omega, omega_d, phi, phi_d, w, w_d);
+		Real MinValue, MaxValue;
+		GetMinMaxValues(GRID_SIZE, phi, MinValue, MaxValue);
+		FillPixels(Pixels, Pixels_d, phi_d, MinValue, MaxValue, CudaDeviceProp);
+#else
+		Plot(GRID_SIZE, Pixels, phi);
 #endif
-		Plot2(&gr, Pixels, PixelsBufferSize, phi, omega);
 		DynamicTexture.update(Pixels);
 		Canvas.draw(SpriteDynamicTexture);
 		Canvas.display();
@@ -237,7 +242,7 @@ int main(int argc, char **argv)
 		Sprite FinalSprite;
 		FinalSprite.setTexture(Canvas.getTexture());
 		float FinalSpriteScale = (WindowSize.y) / ImageSize.y;
-		FinalSprite.scale(FinalSpriteScale, FinalSpriteScale);
+		FinalSprite.scale(FinalSpriteScale, -FinalSpriteScale);
 
 		Vector2f position;
 		position.x = (WindowSize.x * 0.5f) / WindowOffset.x;
@@ -261,6 +266,9 @@ int main(int argc, char **argv)
 #endif
 #if USE_CPP_PLOT
 	delete[] Pixels;
+#if USE_CUDA
+	cudaFree(Pixels_d);
+#endif
 #endif
 	delete[] omega;
 	delete[] phi;

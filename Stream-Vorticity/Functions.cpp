@@ -33,87 +33,41 @@ void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug, Real Time, const 
 	myfile.close();
 }
 
-void mgls_prepare2v(const Real * phi, Real h, mglData *a, mglData *b)
+void GetMinMaxValues(sf::Uint32 GridSize, const Real * InData, Real &MinValue, Real &MaxValue)
 {
-	register long i, j, n = GRID_SIZE, m = GRID_SIZE;
-	if (a) a->Create(n, m);
-	if (b) b->Create(n, m);
+	MinValue = numeric_limits<Real>::max();
+	MaxValue = numeric_limits<Real>::lowest();
+	sf::Uint32 SizeOfData = GridSize * GridSize;
 
-	for (i = 0; i < n; i++)
+	for (Uint64 i = 0; i < SizeOfData; i++)
 	{
-		for (j = 0; j < m; j++)
-		{
-			if (a)
-				mgl_data_set_value(a, IJ(i, j), (phi[IJ(i, j + 1)] - phi[IJ(i, j)]) / (2 * h), 0, 0);
-			if (b)
-				mgl_data_set_value(b, IJ(i, j), (phi[IJ(i + 1, j)] - phi[IJ(i, j)]) / (2 * h), 0, 0);
-		}
-	}
-
-	for (i = 1; i < n - 1; i++)
-	{
-		for (j = 1; j < m - 1; j++)
-		{
-			if (a)
-				mgl_data_set_value(a, IJ(i, j), (phi[IJ(i, j + 1)] - phi[IJ(i, j)]) / (2 * h), 0, 0);
-			if (b)
-				mgl_data_set_value(b, IJ(i, j), (phi[IJ(i + 1, j)] - phi[IJ(i, j)]) / (2 * h), 0, 0);
-		}
+		if (InData[i] < MinValue)
+			MinValue = InData[i];
+		if (InData[i] > MaxValue)
+			MaxValue = InData[i];
 	}
 }
 
-void Fill(mglData *a, const Real * InData, Real DataScaleFactor)
+int Plot(sf::Uint32 GridSize, sf::Uint8* Pixels, const Real * InData)
 {
-	register long i, j;
+	Real MinValue, MaxValue;
+	GetMinMaxValues(GridSize, InData, MinValue, MaxValue);
+	sf::Uint32 SizeOfData = GridSize * GridSize;
 
-	if (a)
-		mgl_data_create(a, GRID_SIZE, GRID_SIZE, 1);
+	MaxValue -= MinValue;
+	Real ScaleFactor = 1;
+	MaxValue *= ScaleFactor;
 
-	for (i = 0; i < GRID_SIZE; i++)
+	for (Uint64 i = 0; i < SizeOfData; i++)
 	{
-		for (j = 0; j < GRID_SIZE; j++)
-		{
-			if (a)
-				mgl_data_set_value(a, InData[IJ(i, j)] * DataScaleFactor, i, j, 0);
-		}
+		Real HelperValue = InData[i] - MinValue;
+		HelperValue = (HelperValue * ScaleFactor * 255) / MaxValue;
+
+		Pixels[i * 4 + 0] = HelperValue;
+		Pixels[i * 4 + 1] = HelperValue;
+		Pixels[i * 4 + 2] = HelperValue;
+		Pixels[i * 4 + 3] = 255;
 	}
-}
-
-int Plot(mglGraph *gr, Uint8* Pixels, Uint64 PixelsBufferSize, const Real * InData, Real DataScaleFactor)
-{
-	mglData a, b;
-	gr->ClearFrame();
-	Fill(&a, InData, DataScaleFactor);
-	gr->Box();
-	gr->Dens(a, "BbcyrR");
-	gr->Cont(a, "rb");
-	//=================================================
-	const Uint8 * data = mgl_get_rgba(gr->Self());
-	memcpy(Pixels, data, PixelsBufferSize * sizeof(Uint8));
-
-	return 0;
-}
-
-int Plot2(mglGraph *gr, Uint8* Pixels, Uint64 PixelsBufferSize, const Real * phi, const Real * omega)
-{
-	mglData a, b;
-	gr->ClearFrame();
-
-	Fill(&a, phi, 1000);
-	gr->SubPlot(2, 2, 0);
-	gr->Box();
-	//gr->Dens(a, "BbcyrR");
-	gr->Cont(a, "rb", "0.0, 0.1");
-
-	Fill(&b, omega, 1);
-	gr->SubPlot(2, 2, 1);
-	gr->Box();
-	gr->Dens(b, "BbcyrR");
-	gr->Cont(b, "rb");
-
-	//=================================================
-	const Uint8 * data = mgl_get_rgba(gr->Self());
-	memcpy(Pixels, data, PixelsBufferSize * sizeof(Uint8));
 
 	return 0;
 }
