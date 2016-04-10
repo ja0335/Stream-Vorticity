@@ -16,11 +16,18 @@ int main(int argc, char **argv)
 	RenderTexture Canvas;
 	Texture DynamicTexture;
 	Sprite SpriteDynamicTexture;
+	Image DyeImage;
 
 	if (!Canvas.create(2048, 2048))
 		return EXIT_FAILURE;
 	if (!DynamicTexture.create(GRID_SIZE, GRID_SIZE))
 		return EXIT_FAILURE;
+
+	if (!DyeImage.loadFromFile("img/201x201.png"))
+	{
+		std::cout << "Cannot open the specified DyeTexture" << std::endl;
+		return EXIT_FAILURE;
+	}
 
 	SpriteDynamicTexture.setTexture(DynamicTexture);
 	DynamicTexture.setSmooth(false);
@@ -30,7 +37,12 @@ int main(int argc, char **argv)
 	Uint8* Pixels = new Uint8[PixelsBufferSize];	memset(Pixels, 0, PixelsBufferSize * sizeof(Uint8));
 #if USE_CUDA
 	Uint8* Pixels_d;
-	cudaMalloc((void **)&Pixels_d, PixelsBufferSize * sizeof(Uint8));	cudaMemset(Pixels_d, 255, PixelsBufferSize * sizeof(Uint8));
+	cudaMalloc((void **)&Pixels_d, PixelsBufferSize * sizeof(Uint8));		
+	cudaMemset(Pixels_d, 255, PixelsBufferSize * sizeof(Uint8));
+	
+	Uint8* DyeImage_d;
+	cudaMalloc((void **)&DyeImage_d, PixelsBufferSize * sizeof(Uint8));		
+	cudaMemcpy(DyeImage_d, DyeImage.getPixelsPtr(), PixelsBufferSize * sizeof(Uint8), cudaMemcpyHostToDevice);
 #endif
 #else
 	RenderWindow window(VideoMode(480, 320), "Navier Stokes");
@@ -237,10 +249,10 @@ int main(int argc, char **argv)
 		//GetMinMaxValues(GRID_SIZE, phi, MinValue, MaxValue);
 		//FillPixels(Pixels, Pixels_d, phi_d, MinValue, MaxValue, CudaDeviceProp);
 
-		CopyDataFromDeviceToHost(v, v_d);
+		CopyDataFromDeviceToHost(omega, omega_d);
 		Real MinValue, MaxValue;
-		GetMinMaxValues(GRID_SIZE, v, MinValue, MaxValue);
-		FillPixels(Pixels, Pixels_d, v_d, MinValue, MaxValue, CudaDeviceProp);
+		GetMinMaxValues(GRID_SIZE, omega, MinValue, MaxValue);
+		FillPixels(Pixels, Pixels_d, omega_d, MinValue, MaxValue, CudaDeviceProp);
 #else
 		Plot(GRID_SIZE, Pixels, phi);
 #endif
@@ -255,6 +267,8 @@ int main(int argc, char **argv)
 		Vector2f WindowOffset = Vector2f(0.95f, 0.95f);
 		Vector2f WindowSize = Vector2f(window.getSize().x * WindowOffset.x, window.getSize().y * WindowOffset.y);
 		Vector2f ImageSize = Vector2f(static_cast<float>(Canvas.getSize().x), static_cast<float>(Canvas.getSize().y));
+
+
 
 		Sprite FinalSprite;
 		FinalSprite.setTexture(Canvas.getTexture());
