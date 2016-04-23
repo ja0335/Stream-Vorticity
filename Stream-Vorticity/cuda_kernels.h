@@ -3,6 +3,7 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "cublas_v2.h"
 #include <SFML/Graphics.hpp>
 #include "Macros.h"
 
@@ -24,7 +25,7 @@ void CopyDataFromDeviceToHost(
 	Real * w,
 	Real * w_d);
 
-void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp);
+void SOR(Real * omega_d, Real * phi_d, Real * phi_previous_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp);
 
 void UpdateVorticity(
 	Real * omega_d,
@@ -34,4 +35,5 @@ void UpdateVorticity(
 	Real Viscocity,
 	cudaDeviceProp CudaDeviceProp);
 
+bool AreEqueal(cublasHandle_t handle, const Real * InDataX, const Real * InDataY);
 #endif

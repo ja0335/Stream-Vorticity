@@ -62,12 +62,18 @@ int main(int argc, char **argv)
 	cudaSetDevice(CudaDevice);
 	cudaDeviceProp CudaDeviceProp;
 	cudaGetDeviceProperties(&CudaDeviceProp, CudaDevice);
+	
+	cublasHandle_t CublasHandle;
+	cublasCreate(&CublasHandle);
+	cublasSetPointerMode(CublasHandle, CUBLAS_POINTER_MODE_DEVICE);
 
 	Real * phi_d;
+	Real * phi_previous_d;
 	Real * omega_d;
 	Real * w_d;
 
 	cudaMalloc((void **)&phi_d, SizeOfData);	cudaMemset(phi_d, 0, SizeOfData);
+	cudaMalloc((void **)&phi_previous_d, SizeOfData);	cudaMemset(phi_previous_d, 100, SizeOfData);
 	cudaMalloc((void **)&omega_d, SizeOfData);	cudaMemset(omega_d, 0, SizeOfData);
 	cudaMalloc((void **)&w_d, SizeOfData);		cudaMemset(w_d, 0, SizeOfData);
 #endif
@@ -125,11 +131,11 @@ int main(int argc, char **argv)
 		// streamfunction calculation by SOR iteration
 		for (int it = 0; it < 1; it++)
 		{
-			SOR(omega_d, phi_d, w_d, h, Beta, CudaDeviceProp);
+			SOR(omega_d, phi_d, phi_previous_d, w_d, h, Beta, CudaDeviceProp);
 		}
 
 		UpdateVorticity(omega_d, phi_d, w_d, h, Viscocity, CudaDeviceProp);
-
+		
 #else
 		// -------------------------------------------------------------------------
 		// streamfunction calculation by SOR iteration
@@ -151,7 +157,7 @@ int main(int argc, char **argv)
 			}
 
 			// stop if iteration has converged
-			if (Err <= SOR_TOLERANCE_ERROR)
+			if (Err <= EPSILON_TOLERANCE_ERROR)
 				break;
 		}
 
@@ -205,7 +211,22 @@ int main(int argc, char **argv)
 		SimulationTime += DT;
 		CurrentStep++;
 #endif
-		if (CurrentStep % 2000 == 0)
+
+//#if USE_CUDA
+//		if (AreEqueal(CublasHandle, phi_d, phi_previous_d))
+//		{
+//			bUseKeyToSimulate = true;
+//
+//			CopyDataFromDeviceToHost(omega, omega_d, phi, phi_d, w, w_d);
+//			std::stringstream ss_phi;
+//			WriteArray(GRID_SIZE, phi, SimulationTime, "Data/phi.csv");
+//
+//			std::stringstream ss_omega;
+//			WriteArray(GRID_SIZE, omega, SimulationTime, "Data/omega.csv");
+//			std::cout << "****Finished Writing Data*****" << std::endl;
+//		}
+//#endif
+
 		{
 			std::cout
 				<< "Current step: " << CurrentStep << "\t"
@@ -257,6 +278,7 @@ int main(int argc, char **argv)
 #if USE_CUDA
 	cudaFree(omega_d);
 	cudaFree(phi_d);
+	cudaFree(phi_previous_d);
 	cudaFree(w_d);
 #endif
 #if USE_CPP_PLOT

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <math.h>
 #include "cuda_kernels.h"
 
 void DeviceQuery()
@@ -157,7 +158,7 @@ void CopyDataFromDeviceToHost(
 }
 
 // -------------------------------------------------------------------------
-__global__ void SOR_Even_kernel(Real * omega, Real * phi, Real * w, Real h, Real Beta)
+__global__ void SOR_Even_kernel(Real * omega, Real * phi, Real * phi_previous, Real * w, Real h, Real Beta)
 {
 	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
 
@@ -165,6 +166,7 @@ __global__ void SOR_Even_kernel(Real * omega, Real * phi, Real * w, Real h, Real
 		return;
 
 	w[idx] = phi[idx];
+	phi_previous[idx] = phi[idx];
 
 	if (idx % 2 == 0 &&
 		idx >= GRID_SIZE && idx < GRID_SIZE * GRID_SIZE - GRID_SIZE
@@ -175,7 +177,7 @@ __global__ void SOR_Even_kernel(Real * omega, Real * phi, Real * w, Real h, Real
 	}
 }
 
-__global__ void SOR_Odd_kernel(Real * omega, Real * phi, Real * w, Real h, Real Beta)
+__global__ void SOR_Odd_kernel(Real * omega, Real * phi, Real * phi_previous, Real * w, Real h, Real Beta)
 {
 	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
 
@@ -183,6 +185,7 @@ __global__ void SOR_Odd_kernel(Real * omega, Real * phi, Real * w, Real h, Real 
 		return;
 
 	w[idx] = phi[idx];
+	phi_previous[idx] = phi[idx];
 
 	if (idx % 2 != 0 &&
 		idx >= GRID_SIZE && idx < GRID_SIZE * GRID_SIZE - GRID_SIZE
@@ -193,7 +196,7 @@ __global__ void SOR_Odd_kernel(Real * omega, Real * phi, Real * w, Real h, Real 
 	}
 }
 
-void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp)
+void SOR(Real * omega_d, Real * phi_d, Real * phi_previous_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp)
 {
 	int NumBlocks = ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock));
 	//We need at least 1 block
@@ -201,9 +204,9 @@ void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDevice
 
 	dim3 ThreadsPerBlock(sqrt(CudaDeviceProp.maxThreadsPerBlock), sqrt(CudaDeviceProp.maxThreadsPerBlock));
 
-	SOR_Even_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, w_d, h, Beta);
+	SOR_Even_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, phi_previous_d, w_d, h, Beta);
 	cudaDeviceSynchronize();
-	SOR_Odd_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, w_d, h, Beta);
+	SOR_Odd_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, phi_previous_d, w_d, h, Beta);
 	cudaDeviceSynchronize();
 }
 
@@ -267,4 +270,32 @@ void UpdateVorticity(
 
 	UpdateVorticity_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, w_d, h, Viscocity);
 	cudaDeviceSynchronize();
+}
+
+// -------------------------------------------------------------------------
+
+bool AreEqueal(cublasHandle_t handle, const Real * InDataX, const Real * InDataY)
+{
+	Real * XResult_d = 0;
+	Real * YResult_d = 0;
+	Real XResult_h = 0;
+	Real YResult_h = 0;
+
+	cudaMalloc((void **)(&XResult_d), sizeof(Real));
+	cudaMalloc((void **)(&YResult_d), sizeof(Real));
+
+#if SINGLE_PRECISION
+	cublasDasum(handle, GRID_SIZE * GRID_SIZE, InDataX, sizeof(Real), XResult_d);
+	cublasDasum(handle, GRID_SIZE * GRID_SIZE, InDataY, sizeof(Real), YResult_d);
+#else
+	cublasDasum(handle, GRID_SIZE * GRID_SIZE, InDataX, sizeof(Real), XResult_d);
+	cublasDasum(handle, GRID_SIZE * GRID_SIZE, InDataY, sizeof(Real), YResult_d);
+#endif
+
+	cudaMemcpy(&XResult_h, XResult_d, sizeof(Real), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&YResult_h, YResult_d, sizeof(Real), cudaMemcpyDeviceToHost);
+
+	Real Difference = fabs(XResult_h - YResult_h);
+
+	return (Difference <= (GRID_SIZE * GRID_SIZE * 0.0001f));
 }
