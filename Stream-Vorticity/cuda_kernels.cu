@@ -273,6 +273,27 @@ void UpdateVorticity(
 }
 
 // -------------------------------------------------------------------------
+Real Average(cublasHandle_t handle, const Real * InData_d)
+{
+	Real * Result_d = 0;
+	Real Result_h = 0;
+
+	cudaMalloc((void **)(&Result_d), sizeof(Real));
+
+#if SINGLE_PRECISION
+	cublasSasum(handle, GRID_SIZE * GRID_SIZE, InData_d, sizeof(Real), Result_d);
+#else
+	cublasDasum(handle, GRID_SIZE * GRID_SIZE, InData_d, sizeof(Real), Result_d);
+#endif
+
+	cudaMemcpy(&Result_h, Result_d, sizeof(Real), cudaMemcpyDeviceToHost);
+
+	Real Avg = Result_h / ((Real)(GRID_SIZE * GRID_SIZE));
+
+	return Avg;
+}
+
+// -------------------------------------------------------------------------
 
 bool AreEqueal(cublasHandle_t handle, const Real * InDataX, const Real * InDataY)
 {
@@ -285,8 +306,8 @@ bool AreEqueal(cublasHandle_t handle, const Real * InDataX, const Real * InDataY
 	cudaMalloc((void **)(&YResult_d), sizeof(Real));
 
 #if SINGLE_PRECISION
-	cublasDasum(handle, GRID_SIZE * GRID_SIZE, InDataX, sizeof(Real), XResult_d);
-	cublasDasum(handle, GRID_SIZE * GRID_SIZE, InDataY, sizeof(Real), YResult_d);
+	cublasSasum(handle, GRID_SIZE * GRID_SIZE, InDataX, sizeof(Real), XResult_d);
+	cublasSasum(handle, GRID_SIZE * GRID_SIZE, InDataY, sizeof(Real), YResult_d);
 #else
 	cublasDasum(handle, GRID_SIZE * GRID_SIZE, InDataX, sizeof(Real), XResult_d);
 	cublasDasum(handle, GRID_SIZE * GRID_SIZE, InDataY, sizeof(Real), YResult_d);

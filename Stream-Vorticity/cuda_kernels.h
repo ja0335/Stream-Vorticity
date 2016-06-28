@@ -35,5 +35,7 @@ void UpdateVorticity(
 	Real Viscocity,
 	cudaDeviceProp CudaDeviceProp);
 
+Real Average(cublasHandle_t handle, const Real * InData_d);
+
 bool AreEqueal(cublasHandle_t handle, const Real * InDataX, const Real * InDataY);
 #endif

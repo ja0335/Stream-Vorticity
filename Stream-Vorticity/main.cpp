@@ -3,7 +3,6 @@
 #include "termcolor.h"
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
-#include <mgl2/mgl.h>
 #include "Functions.h"
 #ifdef USE_CUDA
 #include "cuda_kernels.h"
@@ -28,7 +27,6 @@ int main(int argc, char **argv)
 	float SpriteScale = static_cast<float>(Canvas.getSize().x) / static_cast<float>(PLOT_RESOLUTION);
 	SpriteDynamicTexture.scale(SpriteScale, SpriteScale);
 	Uint64 PixelsBufferSize = PLOT_RESOLUTION * PLOT_RESOLUTION * 4;
-	mglGraph			gr(0, PLOT_RESOLUTION, PLOT_RESOLUTION);
 	Uint8* Pixels = new Uint8[PixelsBufferSize];	memset(Pixels, 0, PixelsBufferSize * sizeof(Uint8));
 #else
 	RenderWindow window(VideoMode(480, 320), "Navier Stokes");
@@ -48,10 +46,10 @@ int main(int argc, char **argv)
 
 	// --------------------------------------------------------------------------------
 	// Data Buffers
-	Uint32 SizeOfData = sizeof(Real)* GRID_SIZE * GRID_SIZE;
-	Real * phi = new Real[GRID_SIZE * GRID_SIZE];				memset(phi, 0, SizeOfData);
-	Real * omega = new Real[GRID_SIZE * GRID_SIZE];				memset(omega, 0, SizeOfData);
-	Real * w = new Real[GRID_SIZE * GRID_SIZE];					memset(w, 0, SizeOfData);
+	Uint32 SizeOfData		= sizeof(Real)* GRID_SIZE * GRID_SIZE;
+	Real * phi				= new Real[GRID_SIZE * GRID_SIZE];			memset(phi, 0, SizeOfData);
+	Real * omega			= new Real[GRID_SIZE * GRID_SIZE];			memset(omega, 0, SizeOfData);
+	Real * w				= new Real[GRID_SIZE * GRID_SIZE];			memset(w, 0, SizeOfData);
 
 #if USE_CUDA
 	// --------------------------------------------------------------------------------
@@ -67,6 +65,7 @@ int main(int argc, char **argv)
 	cublasCreate(&CublasHandle);
 	cublasSetPointerMode(CublasHandle, CUBLAS_POINTER_MODE_DEVICE);
 
+	std::vector<Real> average;
 	Real * phi_d;
 	Real * phi_previous_d;
 	Real * omega_d;
@@ -117,6 +116,9 @@ int main(int argc, char **argv)
 				//ss_omega << "omega_" << CurrentStep << ".csv";
 				//WriteArray(GRID_SIZE, omega, ss_omega.str().c_str());
 				WriteArray(GRID_SIZE, omega, SimulationTime, "Data/omega.csv");
+
+				//WriteVector(&average, "Data/average.csv");
+
 				std::cout << "****Finished Writing Data*****" << std::endl;
 			}
 		}
@@ -135,7 +137,18 @@ int main(int argc, char **argv)
 		}
 
 		UpdateVorticity(omega_d, phi_d, w_d, h, Viscocity, CudaDeviceProp);
-		
+		/*
+		if (CurrentStep % AVERAGE_EACH_STEPS == 0)
+		{
+			Real Avg = 0;
+			CopyDataFromDeviceToHost(omega, omega_d, phi, phi_d, w, w_d);
+			for(Uint64 i = 0; i < GRID_SIZE * GRID_SIZE; i++)
+				Avg += omega[i];
+
+			Avg /= (Real)(GRID_SIZE * GRID_SIZE);
+			average.push_back(Avg);
+		}
+		*/
 #else
 		// -------------------------------------------------------------------------
 		// streamfunction calculation by SOR iteration
@@ -242,7 +255,7 @@ int main(int argc, char **argv)
 #if USE_CUDA
 		CopyDataFromDeviceToHost(omega, omega_d, phi, phi_d, w, w_d);
 #endif
-		Plot2(&gr, Pixels, PixelsBufferSize, phi, omega);
+		Plot(GRID_SIZE, Pixels, omega);
 		DynamicTexture.update(Pixels);
 		Canvas.draw(SpriteDynamicTexture);
 		Canvas.display();
@@ -255,10 +268,12 @@ int main(int argc, char **argv)
 		Vector2f WindowSize = Vector2f(window.getSize().x * WindowOffset.x, window.getSize().y * WindowOffset.y);
 		Vector2f ImageSize = Vector2f(static_cast<float>(Canvas.getSize().x), static_cast<float>(Canvas.getSize().y));
 
+
+
 		Sprite FinalSprite;
 		FinalSprite.setTexture(Canvas.getTexture());
 		float FinalSpriteScale = (WindowSize.y) / ImageSize.y;
-		FinalSprite.scale(FinalSpriteScale, FinalSpriteScale);
+		FinalSprite.scale(FinalSpriteScale, -FinalSpriteScale);
 
 		Vector2f position;
 		position.x = (WindowSize.x * 0.5f) / WindowOffset.x;
