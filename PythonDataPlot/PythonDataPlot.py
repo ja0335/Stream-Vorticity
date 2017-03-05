@@ -10,21 +10,23 @@ import matplotlib.pyplot as plt;
 basepath = os.path.dirname(__file__)
 fig = plt.figure()
 
+Build = "Debug"; #"Release";
+
 for PlotNum in xrange(4):
     
     PlotTittle = "";
 
     if PlotNum == 0:
-        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/Release/Data/phi.csv"));
+        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/" + Build + "/Data/phi.csv"));
         PlotTittle = "Stream Function ";
     elif PlotNum == 1:
-        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/Release/Data/omega.csv"));
+        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/" + Build + "/Data/omega.csv"));
         PlotTittle = "Vorticity Function ";
     elif PlotNum == 2:
-        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/Release/Data/u.csv"));
+        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/" + Build + "/Data/u.csv"));
         PlotTittle = "u Component ";
     elif PlotNum == 3:
-        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/Release/Data/v.csv"));
+        filepath = os.path.abspath(os.path.join(basepath, "..", "x64/" + Build + "/Data/v.csv"));
         PlotTittle = "v Component ";
         
     f = open(filepath);

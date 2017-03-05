@@ -341,14 +341,27 @@ __global__ void FillPixels_kernel(sf::Uint8* Pixels, const Real * InData, Real M
 	if (idx >= GRID_SIZE * GRID_SIZE)
 		return;
 
-	MaxValue -= MinValue;
-	Real HelperValue = InData[idx] - MinValue;
-	HelperValue = (HelperValue * 255) / MaxValue;
-
-	Pixels[idx * 4 + 0] = HelperValue;
-	Pixels[idx * 4 + 1] = HelperValue;
-	Pixels[idx * 4 + 2] = HelperValue;
-	Pixels[idx * 4 + 3] = 255;
+	if (InData[idx] < 0.0f)
+	{
+		Pixels[idx * 4 + 0] = 0;
+		Pixels[idx * 4 + 1] = 0;
+		Pixels[idx * 4 + 2] = 255;
+		Pixels[idx * 4 + 3] = 255;
+	}
+	else if (InData[idx] == 0.0f)
+	{
+		Pixels[idx * 4 + 0] = 255;
+		Pixels[idx * 4 + 1] = 255;
+		Pixels[idx * 4 + 2] = 255;
+		Pixels[idx * 4 + 3] = 255;
+	}
+	else if (InData[idx] > 0.0f)
+	{
+		Pixels[idx * 4 + 0] = 255;
+		Pixels[idx * 4 + 1] = 0;
+		Pixels[idx * 4 + 2] = 0;
+		Pixels[idx * 4 + 3] = 255;
+	}
 }
 
 void FillPixels(

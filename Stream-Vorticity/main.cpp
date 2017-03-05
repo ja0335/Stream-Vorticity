@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 	Sprite SpriteDynamicTexture;
 	Image DyeImage;
 
-	if (!Canvas.create(2048, 2048))
+	if (!Canvas.create(1024, 1024))
 		return EXIT_FAILURE;
 	if (!DynamicTexture.create(GRID_SIZE, GRID_SIZE))
 		return EXIT_FAILURE;
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 	}
 
 	SpriteDynamicTexture.setTexture(DynamicTexture);
-	DynamicTexture.setSmooth(false);
+	DynamicTexture.setSmooth(true);
 	float SpriteScale = static_cast<float>(Canvas.getSize().x) / static_cast<float>(PLOT_RESOLUTION);
 	SpriteDynamicTexture.scale(SpriteScale, SpriteScale);
 	Uint64 PixelsBufferSize = PLOT_RESOLUTION * PLOT_RESOLUTION * 4;
@@ -53,8 +53,8 @@ int main(int argc, char **argv)
 	Real Viscocity = 1.0f / REYNOLDS_NUMBER;
 
 	// relaxation factors
-	// SOR converges fastest for a square lattice if Beta = 2 / (1.0f + PI / L)
-	// where  is the number of lattice points in the x or y directions
+	// SOR converges fastest for a square lattice if Beta = 2 / (1.0f + PI / N)
+	// where N is the number of lattice points in the x or y directions
 	Real Beta = 2.0f / (1.0f + (PI / GRID_SIZE));
 
 	// Spatial step
@@ -63,11 +63,11 @@ int main(int argc, char **argv)
 	// --------------------------------------------------------------------------------
 	// Data Buffers
 	Uint32 SizeOfData = sizeof(Real)* GRID_SIZE * GRID_SIZE;
-	Real * u = new Real[GRID_SIZE * GRID_SIZE];					memset(u, 0, SizeOfData);
-	Real * v = new Real[GRID_SIZE * GRID_SIZE];					memset(v, 0, SizeOfData);
-	Real * phi = new Real[GRID_SIZE * GRID_SIZE];				memset(phi, 0, SizeOfData);
-	Real * omega = new Real[GRID_SIZE * GRID_SIZE];				memset(omega, 0, SizeOfData);
-	Real * w = new Real[GRID_SIZE * GRID_SIZE];					memset(w, 0, SizeOfData);
+	Real * u =		new Real[GRID_SIZE * GRID_SIZE];		memset(u, 0, SizeOfData);
+	Real * v =		new Real[GRID_SIZE * GRID_SIZE];		memset(v, 0, SizeOfData);
+	Real * phi =	new Real[GRID_SIZE * GRID_SIZE];		memset(phi, 0, SizeOfData);
+	Real * omega =	new Real[GRID_SIZE * GRID_SIZE];		memset(omega, 0, SizeOfData);
+	Real * w =		new Real[GRID_SIZE * GRID_SIZE];		memset(w, 0, SizeOfData);
 
 #if USE_CUDA
 	// --------------------------------------------------------------------------------
@@ -170,8 +170,14 @@ int main(int argc, char **argv)
 					w[IJ(i, j)] = phi[IJ(i, j)];
 
 					if (i > 0 && i < GRID_SIZE - 1 && j > 0 && j < GRID_SIZE - 1)
-						phi[IJ(i, j)] = 0.25f*Beta*(phi[IJ(i + 1, j)] + phi[IJ(i - 1, j)] + phi[IJ(i, j + 1)] + phi[IJ(i, j - 1)] + h*h*omega[IJ(i, j)]) + (1.0f - Beta)*phi[IJ(i, j)];
-
+					{
+						phi[IJ(i, j)] = 0.25f*Beta*(
+								phi[IJ(i + 1, j)] + phi[IJ(i - 1, j)] + 
+								phi[IJ(i, j + 1)] + phi[IJ(i, j - 1)] + 
+								h*h * omega[IJ(i, j)]) 
+							+ (1.0f - Beta)*phi[IJ(i, j)];
+					}
+					// Estimate tolerance error
 					Err += abs(w[IJ(i, j)] - phi[IJ(i, j)]);
 				}
 			}
@@ -187,27 +193,42 @@ int main(int argc, char **argv)
 		{
 			omega[IJ(i, GRID_SIZE - 1)] = -2.0f*phi[IJ(i, GRID_SIZE - 2)] / (h*h) - LID_SPEED * (2.0f / h); // top wall
 			omega[IJ(i, 0)] = -2.0f*phi[IJ(i, 1)] / (h*h); // bottom wall
-			omega[IJ(GRID_SIZE - 1, i)] = -2.0f*phi[IJ(GRID_SIZE - 2, i)] / (h*h); // left wall
-			omega[IJ(0, i)] = -2.0f*phi[IJ(1, i)] / (h*h); // right wall
+			omega[IJ(GRID_SIZE - 1, i)] = -2.0f*phi[IJ(GRID_SIZE - 2, i)] / (h*h); // right wall
+			omega[IJ(0, i)] = -2.0f*phi[IJ(1, i)] / (h*h); // left wall
 		}
 
 		// --------------------------------------------------------------------------
 		// RHS Calculation
+		// u+v
+		Real u_v = -999999;
+
 		for (int i = 1; i < GRID_SIZE - 1; i++)
 		{
 			for (int j = 1; j < GRID_SIZE - 1; j++)
 			{
+				u[IJ(i, j)] =  (phi[IJ(i, j + 1)] - phi[IJ(i, j - 1)]) / (2 * h);
+				v[IJ(i, j)] = -(phi[IJ(i + 1, j)] - phi[IJ(i - 1, j)]) / (2 * h);
+				Real sum = u[IJ(i, j)] + v[IJ(i, j)];
+
+				if (sum > u_v)
+					u_v = sum;
+
 				w[IJ(i, j)] = -0.25f*((phi[IJ(i, j + 1)] - phi[IJ(i, j - 1)])*(omega[IJ(i + 1, j)] - omega[IJ(i - 1, j)])
 					- (phi[IJ(i + 1, j)] - phi[IJ(i - 1, j)])*(omega[IJ(i, j + 1)] - omega[IJ(i, j - 1)])) / (h*h)
 					+ Viscocity * (omega[IJ(i + 1, j)] + omega[IJ(i - 1, j)] + omega[IJ(i, j + 1)] + omega[IJ(i, j - 1)] - 4.0f*omega[IJ(i, j)]) / (h*h);
 			}
 		}
+
+		// -------------------------------------------------------------------------
+		// Get an apropiate dt
+		Real dt = (8 * REYNOLDS_NUMBER * h * h) / (16 + u_v * u_v * REYNOLDS_NUMBER * REYNOLDS_NUMBER * h * h);
+
 		// -------------------------------------------------------------------------
 		// Update the vorticity
 		for (int i = 1; i < GRID_SIZE - 1; i++)
 		{
 			for (int j = 1; j < GRID_SIZE - 1; j++)
-				omega[IJ(i, j)] = omega[IJ(i, j)] + DT*w[IJ(i, j)];
+				omega[IJ(i, j)] = omega[IJ(i, j)] + dt*w[IJ(i, j)];
 		}
 #endif
 		
@@ -233,6 +254,7 @@ int main(int argc, char **argv)
 #endif
 		{
 			std::cout
+				<< "Sim dt: " << dt << "\t"
 				<< "Current step: " << CurrentStep << "\t"
 				<< "Step time: " << Clock1.restart().asSeconds() << " sec\t"
 				<< termcolor::red 
@@ -250,8 +272,9 @@ int main(int argc, char **argv)
 		//FillPixels(Pixels, Pixels_d, phi_d, MinValue, MaxValue, CudaDeviceProp);
 
 		CopyDataFromDeviceToHost(omega, omega_d);
-		Real MinValue, MaxValue;
-		GetMinMaxValues(GRID_SIZE, omega, MinValue, MaxValue);
+		Real MinValue = 0;
+		Real MaxValue = 0;
+		//GetMinMaxValues(GRID_SIZE, omega, MinValue, MaxValue);
 		FillPixels(Pixels, Pixels_d, omega_d, MinValue, MaxValue, CudaDeviceProp);
 #else
 		Plot(GRID_SIZE, Pixels, phi);
@@ -267,9 +290,7 @@ int main(int argc, char **argv)
 		Vector2f WindowOffset = Vector2f(0.95f, 0.95f);
 		Vector2f WindowSize = Vector2f(window.getSize().x * WindowOffset.x, window.getSize().y * WindowOffset.y);
 		Vector2f ImageSize = Vector2f(static_cast<float>(Canvas.getSize().x), static_cast<float>(Canvas.getSize().y));
-
-
-
+		
 		Sprite FinalSprite;
 		FinalSprite.setTexture(Canvas.getTexture());
 		float FinalSpriteScale = (WindowSize.y) / ImageSize.y;
