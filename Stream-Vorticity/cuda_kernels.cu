@@ -215,11 +215,13 @@ __global__ void SOR_Odd_kernel(Real * omega, Real * phi, Real * w, Real h, Real 
 
 void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp)
 {
-	int NumBlocks = ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock));
+	int NumBlocks = static_cast<int>(ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock)));
 	//We need at least 1 block
 	NumBlocks = (NumBlocks == 0) ? 1 : NumBlocks;
 
-	dim3 ThreadsPerBlock(sqrt(CudaDeviceProp.maxThreadsPerBlock), sqrt(CudaDeviceProp.maxThreadsPerBlock));
+	dim3 ThreadsPerBlock(
+		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)), 
+		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)));
 
 	SOR_Even_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, w_d, h, Beta);
 	cudaDeviceSynchronize();
@@ -228,7 +230,7 @@ void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDevice
 }
 
 // -------------------------------------------------------------------------
-__global__ void UpdateVorticity_kernel(Real * omega, Real * u, Real * v, Real * phi, Real * w, Real h, Real Viscocity)
+__global__ void UpdateVorticity_kernel1(Real * omega, Real * u, Real * v, Real * sum, Real * phi, Real * w, Real h, Real Viscocity)
 {
 	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
 
@@ -255,10 +257,12 @@ __global__ void UpdateVorticity_kernel(Real * omega, Real * u, Real * v, Real * 
 		// RHS Calculation
 		u[idx] =  (phi[idx + GRID_SIZE] - phi[idx - GRID_SIZE]) / (2 * h);
 		v[idx] = -(phi[idx + 1] - phi[idx - 1]) / (2 * h);
-
+		
 		w[idx] = - ( u[idx] * ((omega[idx + 1] - omega[idx - 1]) / (2 * h))
 				   + v[idx] * ((omega[idx + GRID_SIZE] - omega[idx - GRID_SIZE]) / (2 * h)))
 			+ Viscocity * (omega[idx + 1] + omega[idx - 1] + omega[idx + GRID_SIZE] + omega[idx - GRID_SIZE] - 4.0f*omega[idx]) / (h*h);
+		
+		sum[idx] = u[idx] + v[idx];
 	}
 
 	__syncthreads();
@@ -274,24 +278,84 @@ __global__ void UpdateVorticity_kernel(Real * omega, Real * u, Real * v, Real * 
 	}
 }
 
-void UpdateVorticity(
+// -------------------------------------------------------------------------
+__global__ void UpdateVorticity_kernel2(Real * omega, Real * w, Real dt)
+{
+	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
+
+	if (idx >= GRID_SIZE * GRID_SIZE)
+		return;
+	
+	if (idx >= GRID_SIZE && idx < GRID_SIZE * GRID_SIZE - GRID_SIZE
+		&&
+		idx % GRID_SIZE != 0 && (idx + 1) % GRID_SIZE != 0)
+	{
+		// -------------------------------------------------------------------------
+		// Update the vorticity
+		omega[idx] = omega[idx] + dt * w[idx];
+	}
+}
+
+// -------------------------------------------------------------------------
+__global__ void ReduceMax_kernel(Real * data)
+{
+	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
+
+	if (idx >= GRID_SIZE * GRID_SIZE)
+		return;
+
+	// in-place reduction in global memory
+	for (int stride = 1; stride < blockDim.x * blockDim.y; stride *= 2)
+	{
+		if ((idx % (2 * stride)) == 0) 
+		{
+			if (data[idx] < data[idx + stride])
+				data[idx] = data[idx + stride];
+		}
+		// synchronize within block
+		__syncthreads();
+	}
+}
+
+
+Real UpdateVorticity(
 	Real * omega_d,
 	Real * u_d,
 	Real * v_d,
+	Real * max_d,
+	Real * max_h,
 	Real * phi_d,
 	Real * w_d,
 	Real h,
 	Real Viscocity,
 	cudaDeviceProp CudaDeviceProp)
 {
-	int NumBlocks = ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock));
+	int NumBlocks = static_cast<unsigned int>(ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock)));
 	//We need at least 1 block
 	NumBlocks = (NumBlocks == 0) ? 1 : NumBlocks;
 
-	dim3 ThreadsPerBlock(sqrt(CudaDeviceProp.maxThreadsPerBlock), sqrt(CudaDeviceProp.maxThreadsPerBlock));
+	dim3 ThreadsPerBlock(
+		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)), 
+		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)));
 
-	UpdateVorticity_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, u_d, v_d, phi_d, w_d, h, Viscocity);
+	UpdateVorticity_kernel1 << <NumBlocks, ThreadsPerBlock >> >(omega_d, u_d, v_d, max_d, phi_d, w_d, h, Viscocity);
 	cudaDeviceSynchronize();
+	ReduceMax_kernel << <NumBlocks, ThreadsPerBlock >> >(max_d);
+	cudaDeviceSynchronize();
+
+	CopyDataFromDeviceToHost(max_h, max_d);
+	Real gpu_max = 0;
+
+	for (int i = 0; i<NumBlocks; i++) 
+		gpu_max += max_h[i];
+
+	// Get an apropiate dt
+	Real dt = (8 * REYNOLDS_NUMBER * h * h) / (16 + gpu_max * gpu_max * REYNOLDS_NUMBER * REYNOLDS_NUMBER * h * h);
+
+	UpdateVorticity_kernel2 << <NumBlocks, ThreadsPerBlock >> >(omega_d, w_d, DT);
+	cudaDeviceSynchronize();
+
+	return dt;
 }
 
 // -------------------------------------------------------------------------
@@ -372,11 +436,13 @@ void FillPixels(
 	Real MaxValue,
 	cudaDeviceProp CudaDeviceProp)
 {
-	int NumBlocks = ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock));
+	int NumBlocks = static_cast<unsigned int>(ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock)));
 	//We need at least 1 block
 	NumBlocks = (NumBlocks == 0) ? 1 : NumBlocks;
 
-	dim3 ThreadsPerBlock(sqrt(CudaDeviceProp.maxThreadsPerBlock), sqrt(CudaDeviceProp.maxThreadsPerBlock));
+	dim3 ThreadsPerBlock(
+		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)), 
+		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)));
 
 	FillPixels_kernel << <NumBlocks, ThreadsPerBlock >> >(Pixels_d, Data_d, MinValue, MaxValue);
 

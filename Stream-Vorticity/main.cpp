@@ -65,6 +65,7 @@ int main(int argc, char **argv)
 	Uint32 SizeOfData = sizeof(Real)* GRID_SIZE * GRID_SIZE;
 	Real * u =		new Real[GRID_SIZE * GRID_SIZE];		memset(u, 0, SizeOfData);
 	Real * v =		new Real[GRID_SIZE * GRID_SIZE];		memset(v, 0, SizeOfData);
+	Real * max	=	new Real[GRID_SIZE * GRID_SIZE];		memset(v, 0, SizeOfData);
 	Real * phi =	new Real[GRID_SIZE * GRID_SIZE];		memset(phi, 0, SizeOfData);
 	Real * omega =	new Real[GRID_SIZE * GRID_SIZE];		memset(omega, 0, SizeOfData);
 	Real * w =		new Real[GRID_SIZE * GRID_SIZE];		memset(w, 0, SizeOfData);
@@ -81,12 +82,14 @@ int main(int argc, char **argv)
 
 	Real * u_d;
 	Real * v_d;
+	Real * max_d;
 	Real * phi_d;
 	Real * omega_d;
 	Real * w_d;
 
 	cudaMalloc((void **)&u_d, SizeOfData);		cudaMemset(u_d, 0, SizeOfData);
 	cudaMalloc((void **)&v_d, SizeOfData);		cudaMemset(v_d, 0, SizeOfData);
+	cudaMalloc((void **)&max_d, SizeOfData);	cudaMemset(max_d, -999999, SizeOfData);
 	cudaMalloc((void **)&phi_d, SizeOfData);	cudaMemset(phi_d, 0, SizeOfData);
 	cudaMalloc((void **)&omega_d, SizeOfData);	cudaMemset(omega_d, 0, SizeOfData);
 	cudaMalloc((void **)&w_d, SizeOfData);		cudaMemset(w_d, 0, SizeOfData);
@@ -154,7 +157,7 @@ int main(int argc, char **argv)
 			SOR(omega_d, phi_d, w_d, h, Beta, CudaDeviceProp);
 		}
 
-		UpdateVorticity(omega_d, u_d, v_d, phi_d, w_d, h, Viscocity, CudaDeviceProp);
+		Real dt = UpdateVorticity(omega_d, u_d, v_d, max_d, max, phi_d, w_d, h, Viscocity, CudaDeviceProp);
 
 #else
 		// -------------------------------------------------------------------------
@@ -314,6 +317,7 @@ int main(int argc, char **argv)
 #if USE_CUDA
 	cudaFree(u_d);
 	cudaFree(v_d);
+	cudaFree(max_d);
 	cudaFree(phi_d);
 	cudaFree(omega_d);
 	cudaFree(w_d);
@@ -326,6 +330,7 @@ int main(int argc, char **argv)
 #endif
 	delete[] u;
 	delete[] v;
+	delete[] max;
 	delete[] phi;
 	delete[] omega;
 	delete[] w;

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt;
 basepath = os.path.dirname(__file__)
 fig = plt.figure()
 
-Build = "Debug"; #"Release";
+Build = "Release"; #"Release";
 
 for PlotNum in xrange(4):
     
@@ -67,11 +67,14 @@ for PlotNum in xrange(4):
        
     f.close();
     
-    levels = np.linspace(MinValue, MaxValue, 1000);
+    levels = np.linspace(MinValue, MaxValue*0.25, 100, endpoint=False);
+    levels = np.append(levels, np.linspace(MaxValue*0.25, MaxValue, 10));
+
     plt.subplot(2, 2, PlotNum+1);
     plt.title(PlotTittle);
     plt.gca().set_aspect('equal', adjustable='box')
     plt.contour(X, Y, Z, levels, linewidths=(0.1, 0.2, 0.3, 0.4, 0.5));
+    #plt.plot(spacing, spacing, spacing,levels);
 
 
 plt.show()

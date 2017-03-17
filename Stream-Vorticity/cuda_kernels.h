@@ -34,10 +34,12 @@ void CopyDataFromDeviceToHost(
 
 void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp);
 
-void UpdateVorticity(
+Real UpdateVorticity(
 	Real * omega_d,
 	Real * u_d,
 	Real * v_d,
+	Real * max_d,
+	Real * max_h,
 	Real * phi_d,
 	Real * w_d,
 	Real h,

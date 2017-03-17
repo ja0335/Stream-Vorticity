@@ -63,9 +63,9 @@ int Plot(sf::Uint32 GridSize, sf::Uint8* Pixels, const Real * InData)
 		Real HelperValue = InData[i] - MinValue;
 		HelperValue = (HelperValue * ScaleFactor * 255) / MaxValue;
 
-		Pixels[i * 4 + 0] = HelperValue;
-		Pixels[i * 4 + 1] = HelperValue;
-		Pixels[i * 4 + 2] = HelperValue;
+		Pixels[i * 4 + 0] = static_cast<sf::Uint32>(HelperValue);
+		Pixels[i * 4 + 1] = static_cast<sf::Uint32>(HelperValue);
+		Pixels[i * 4 + 2] = static_cast<sf::Uint32>(HelperValue);
 		Pixels[i * 4 + 3] = 255;
 	}
 
