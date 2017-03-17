@@ -23,11 +23,13 @@ int main(int argc, char **argv)
 	if (!DynamicTexture.create(GRID_SIZE, GRID_SIZE))
 		return EXIT_FAILURE;
 
+#if USE_DYE
 	if (!DyeImage.loadFromFile("img/201x201.png"))
 	{
 		std::cout << "Cannot open the specified DyeTexture" << std::endl;
 		return EXIT_FAILURE;
 	}
+#endif
 
 	SpriteDynamicTexture.setTexture(DynamicTexture);
 	DynamicTexture.setSmooth(true);
@@ -40,9 +42,11 @@ int main(int argc, char **argv)
 	cudaMalloc((void **)&Pixels_d, PixelsBufferSize * sizeof(Uint8));		
 	cudaMemset(Pixels_d, 255, PixelsBufferSize * sizeof(Uint8));
 	
+#if USE_DYE
 	Uint8* DyeImage_d;
 	cudaMalloc((void **)&DyeImage_d, PixelsBufferSize * sizeof(Uint8));		
 	cudaMemcpy(DyeImage_d, DyeImage.getPixelsPtr(), PixelsBufferSize * sizeof(Uint8), cudaMemcpyHostToDevice);
+#endif
 #endif
 #else
 	RenderWindow window(VideoMode(480, 320), "Navier Stokes");
@@ -204,6 +208,7 @@ int main(int argc, char **argv)
 		// RHS Calculation
 		// u+v
 		Real u_v = -999999;
+		Real * temp = new Real[GRID_SIZE * GRID_SIZE];	memset(temp, 0, SizeOfData);
 
 		for (int i = 1; i < GRID_SIZE - 1; i++)
 		{
@@ -212,7 +217,7 @@ int main(int argc, char **argv)
 				u[IJ(i, j)] =  (phi[IJ(i, j + 1)] - phi[IJ(i, j - 1)]) / (2 * h);
 				v[IJ(i, j)] = -(phi[IJ(i + 1, j)] - phi[IJ(i - 1, j)]) / (2 * h);
 				Real sum = u[IJ(i, j)] + v[IJ(i, j)];
-
+				temp[IJ(i, j)] = sum;
 				if (sum > u_v)
 					u_v = sum;
 
@@ -222,6 +227,7 @@ int main(int argc, char **argv)
 			}
 		}
 
+		WriteArray(temp, GRID_SIZE * GRID_SIZE, "Data/max.txt");
 		// -------------------------------------------------------------------------
 		// Get an apropiate dt
 		Real dt = (8 * REYNOLDS_NUMBER * h * h) / (16 + u_v * u_v * REYNOLDS_NUMBER * REYNOLDS_NUMBER * h * h);

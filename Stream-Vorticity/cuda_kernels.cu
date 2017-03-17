@@ -1,6 +1,8 @@
 #include <iostream>
 #include "cuda_kernels.h"
 
+#include "Functions.h"
+
 void DeviceQuery()
 {
 	printf(" CUDA Device Query (Runtime API) version (CUDART static linking)\n\n");
@@ -264,18 +266,6 @@ __global__ void UpdateVorticity_kernel1(Real * omega, Real * u, Real * v, Real *
 		
 		sum[idx] = u[idx] + v[idx];
 	}
-
-	__syncthreads();
-
-
-	if (idx >= GRID_SIZE && idx < GRID_SIZE * GRID_SIZE - GRID_SIZE
-		&&
-		idx % GRID_SIZE != 0 && (idx + 1) % GRID_SIZE != 0)
-	{
-		// -------------------------------------------------------------------------
-		// Update the vorticity
-		omega[idx] = omega[idx] + DT * w[idx];
-	}
 }
 
 // -------------------------------------------------------------------------
@@ -299,21 +289,32 @@ __global__ void UpdateVorticity_kernel2(Real * omega, Real * w, Real dt)
 // -------------------------------------------------------------------------
 __global__ void ReduceMax_kernel(Real * data)
 {
-	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
+	extern __shared__ float sdata[];
 
-	if (idx >= GRID_SIZE * GRID_SIZE)
-		return;
+	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
+	int tid = threadIdx.x + blockDim.x*(threadIdx.y);
+
+	if (idx < GRID_SIZE * GRID_SIZE)
+		sdata[tid] = data[idx];
+	else
+		sdata[tid] = -9999999;
+
+	__syncthreads();
 
 	// in-place reduction in global memory
-	for (int stride = 1; stride < blockDim.x * blockDim.y; stride *= 2)
+	for (unsigned int s = (blockDim.x * blockDim.y) / 2; s > 0; s >>= 1)
 	{
-		if ((idx % (2 * stride)) == 0) 
+		if (tid < s && sdata[tid] < sdata[tid + s])
 		{
-			if (data[idx] < data[idx + stride])
-				data[idx] = data[idx + stride];
+			//sdata[tid] = sdata[tid + s];
 		}
-		// synchronize within block
-		__syncthreads();
+		__syncthreads();        // make sure all adds at one stage are done!
+	}
+
+	// only thread 0 writes result for this block back to global mem
+	if (tid == 0)
+	{
+		data[blockIdx.x] = 31415;// sdata[0];
 	}
 }
 
@@ -340,14 +341,19 @@ Real UpdateVorticity(
 
 	UpdateVorticity_kernel1 << <NumBlocks, ThreadsPerBlock >> >(omega_d, u_d, v_d, max_d, phi_d, w_d, h, Viscocity);
 	cudaDeviceSynchronize();
-	ReduceMax_kernel << <NumBlocks, ThreadsPerBlock >> >(max_d);
+	ReduceMax_kernel << <NumBlocks, ThreadsPerBlock, CudaDeviceProp.maxThreadsPerBlock * sizeof(Real) >> >(max_d);
 	cudaDeviceSynchronize();
-
+	
 	CopyDataFromDeviceToHost(max_h, max_d);
-	Real gpu_max = 0;
+	WriteArray(max_h, CudaDeviceProp.maxThreadsPerBlock, "Data/max.txt");
+	Real gpu_max = -9999999;
 
-	for (int i = 0; i<NumBlocks; i++) 
-		gpu_max += max_h[i];
+	for (int i = 0; i < NumBlocks; i++)
+	{
+		Real temp = max_h[i];
+		if (gpu_max < temp)
+			gpu_max = temp;
+	}
 
 	// Get an apropiate dt
 	Real dt = (8 * REYNOLDS_NUMBER * h * h) / (16 + gpu_max * gpu_max * REYNOLDS_NUMBER * REYNOLDS_NUMBER * h * h);

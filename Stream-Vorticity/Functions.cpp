@@ -7,6 +7,20 @@
 using namespace sf;
 using namespace std;
 
+void WriteArray(const Real * ArayToDebug, const sf::Uint32 ArraySize, const char * Name)
+{
+	ofstream myfile;
+	myfile.open(Name);
+
+	for (Uint32 i = 0; i < ArraySize; i++)
+	{
+		Real value = ArayToDebug[i];
+		myfile << value << ";";
+	}
+
+	myfile.close();
+}
+
 void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug, Real Time, const char * Name)
 {
 	ofstream myfile;

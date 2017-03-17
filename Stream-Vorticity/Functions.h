@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include "Macros.h"
 
+void WriteArray(const Real * ArayToDebug, const sf::Uint32 ArraySize, const char * Name = "array.csv");
 
 void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug, Real Time, const char * Name = "array.csv");
 

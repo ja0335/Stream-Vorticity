@@ -19,6 +19,7 @@
 #define USE_CPP_PLOT 1
 #define PLOT_RESOLUTION GRID_SIZE
 #define USE_CUDA 1
+#define USE_DYE 0
 
 #define IJ(i, j) ((i) + GRID_SIZE*(j))
 
