@@ -129,15 +129,9 @@ void DeviceQuery()
 void CopyDataFromHostToDevice(Real * Data_h, Real * Data_d)
 {
 	sf::Uint64 size = GRID_SIZE * GRID_SIZE * sizeof(Real);
+	cudaDeviceSynchronize();
 
 	cudaMemcpy(Data_d, Data_h, size, cudaMemcpyHostToDevice);
-}
-
-void CopyDataFromDeviceToHost(Real * Data_h, Real * Data_d)
-{
-	sf::Uint64 size = GRID_SIZE * GRID_SIZE * sizeof(Real);
-
-	cudaMemcpy(Data_d, Data_h, size, cudaMemcpyDeviceToHost);
 }
 
 void CopyDataFromHostToDevice(
@@ -153,6 +147,15 @@ void CopyDataFromHostToDevice(
 	cudaMemcpy(omega_d, omega, size, cudaMemcpyHostToDevice);
 	cudaMemcpy(phi_d, phi, size, cudaMemcpyHostToDevice);
 	cudaMemcpy(w_d, w, size, cudaMemcpyHostToDevice);
+}
+
+void CopyDataFromDeviceToHost(Real * Data_h, Real * Data_d)
+{
+	sf::Uint64 size = GRID_SIZE * GRID_SIZE * sizeof(Real);
+
+	cudaDeviceSynchronize();
+
+	cudaMemcpy(Data_h, Data_d, size, cudaMemcpyDeviceToHost);
 }
 
 void CopyDataFromDeviceToHost(
@@ -294,10 +297,10 @@ __global__ void ReduceMax_kernel(Real * data)
 	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
 	int tid = threadIdx.x + blockDim.x*(threadIdx.y);
 
+	sdata[tid] = -9999999;
+
 	if (idx < GRID_SIZE * GRID_SIZE)
 		sdata[tid] = data[idx];
-	else
-		sdata[tid] = -9999999;
 
 	__syncthreads();
 
@@ -306,7 +309,7 @@ __global__ void ReduceMax_kernel(Real * data)
 	{
 		if (tid < s && sdata[tid] < sdata[tid + s])
 		{
-			//sdata[tid] = sdata[tid + s];
+			sdata[tid] = sdata[tid + s];
 		}
 		__syncthreads();        // make sure all adds at one stage are done!
 	}
@@ -314,10 +317,9 @@ __global__ void ReduceMax_kernel(Real * data)
 	// only thread 0 writes result for this block back to global mem
 	if (tid == 0)
 	{
-		data[blockIdx.x] = 31415;// sdata[0];
+		data[blockIdx.x] = sdata[0];
 	}
 }
-
 
 Real UpdateVorticity(
 	Real * omega_d,
@@ -343,22 +345,22 @@ Real UpdateVorticity(
 	cudaDeviceSynchronize();
 	ReduceMax_kernel << <NumBlocks, ThreadsPerBlock, CudaDeviceProp.maxThreadsPerBlock * sizeof(Real) >> >(max_d);
 	cudaDeviceSynchronize();
-	
+
 	CopyDataFromDeviceToHost(max_h, max_d);
-	WriteArray(max_h, CudaDeviceProp.maxThreadsPerBlock, "Data/max.txt");
-	Real gpu_max = -9999999;
+		
+	Real u_v = -9999999;
 
 	for (int i = 0; i < NumBlocks; i++)
 	{
-		Real temp = max_h[i];
-		if (gpu_max < temp)
-			gpu_max = temp;
+		Real sum = max_h[i];
+		if (sum > u_v)
+			u_v = sum;
 	}
 
 	// Get an apropiate dt
-	Real dt = (8 * REYNOLDS_NUMBER * h * h) / (16 + gpu_max * gpu_max * REYNOLDS_NUMBER * REYNOLDS_NUMBER * h * h);
+	Real dt = (8 * REYNOLDS_NUMBER * h * h) / (16 + u_v * u_v * REYNOLDS_NUMBER * REYNOLDS_NUMBER * h * h);
 
-	UpdateVorticity_kernel2 << <NumBlocks, ThreadsPerBlock >> >(omega_d, w_d, DT);
+	UpdateVorticity_kernel2 << <NumBlocks, ThreadsPerBlock >> >(omega_d, w_d, dt);
 	cudaDeviceSynchronize();
 
 	return dt;

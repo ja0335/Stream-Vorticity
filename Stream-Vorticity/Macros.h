@@ -9,12 +9,13 @@
 // dx = 0.005 = 201
 #define GRID_SIZE 201 
 #define LID_SPEED 1.0f
-#define REYNOLDS_NUMBER 1000.0f
+#define REYNOLDS_NUMBER 9376.0f
 #define MAX_SOR_ITERATIONS 100
 #define SOR_TOLERANCE_ERROR 0.001f
-#define DT 0.001f // time step
+//#define DT 0.001f // time step
 
 #define CAPTURE_DATA 0
+#define PRINT_DATA 0
 #define SINGLE_PRECISION 0
 #define USE_CPP_PLOT 1
 #define PLOT_RESOLUTION GRID_SIZE

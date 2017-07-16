@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>6358dbbf-03ce-4d83-9fdb-c7746f688c9e</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>VelocityField.py</StartupFile>
+    <StartupFile>Test.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -25,6 +25,9 @@
     <Compile Include="PythonDataPlot.py" />
     <Compile Include="PythonDataPlot3D.py" />
     <Compile Include="PythonDataPlot_Anim.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Test.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="VelocityField.py">

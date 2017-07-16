@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 
 	cudaMalloc((void **)&u_d, SizeOfData);		cudaMemset(u_d, 0, SizeOfData);
 	cudaMalloc((void **)&v_d, SizeOfData);		cudaMemset(v_d, 0, SizeOfData);
-	cudaMalloc((void **)&max_d, SizeOfData);	cudaMemset(max_d, -999999, SizeOfData);
+	cudaMalloc((void **)&max_d, SizeOfData);	cudaMemset(max_d, 0, SizeOfData);
 	cudaMalloc((void **)&phi_d, SizeOfData);	cudaMemset(phi_d, 0, SizeOfData);
 	cudaMalloc((void **)&omega_d, SizeOfData);	cudaMemset(omega_d, 0, SizeOfData);
 	cudaMalloc((void **)&w_d, SizeOfData);		cudaMemset(w_d, 0, SizeOfData);
@@ -208,7 +208,6 @@ int main(int argc, char **argv)
 		// RHS Calculation
 		// u+v
 		Real u_v = -999999;
-		Real * temp = new Real[GRID_SIZE * GRID_SIZE];	memset(temp, 0, SizeOfData);
 
 		for (int i = 1; i < GRID_SIZE - 1; i++)
 		{
@@ -217,7 +216,7 @@ int main(int argc, char **argv)
 				u[IJ(i, j)] =  (phi[IJ(i, j + 1)] - phi[IJ(i, j - 1)]) / (2 * h);
 				v[IJ(i, j)] = -(phi[IJ(i + 1, j)] - phi[IJ(i - 1, j)]) / (2 * h);
 				Real sum = u[IJ(i, j)] + v[IJ(i, j)];
-				temp[IJ(i, j)] = sum;
+				max[IJ(i, j)] = sum;
 				if (sum > u_v)
 					u_v = sum;
 
@@ -227,7 +226,6 @@ int main(int argc, char **argv)
 			}
 		}
 
-		WriteArray(temp, GRID_SIZE * GRID_SIZE, "Data/max.txt");
 		// -------------------------------------------------------------------------
 		// Get an apropiate dt
 		Real dt = (8 * REYNOLDS_NUMBER * h * h) / (16 + u_v * u_v * REYNOLDS_NUMBER * REYNOLDS_NUMBER * h * h);
@@ -237,7 +235,7 @@ int main(int argc, char **argv)
 		for (int i = 1; i < GRID_SIZE - 1; i++)
 		{
 			for (int j = 1; j < GRID_SIZE - 1; j++)
-				omega[IJ(i, j)] = omega[IJ(i, j)] + dt*w[IJ(i, j)];
+				omega[IJ(i, j)] = omega[IJ(i, j)] + dt * w[IJ(i, j)];
 		}
 #endif
 		
@@ -258,9 +256,10 @@ int main(int argc, char **argv)
 #endif
 
 		// increment the time
-		SimulationTime += DT;
+		SimulationTime += dt;
 		CurrentStep++;
 #endif
+#if PRINT_DATA
 		{
 			std::cout
 				<< "Sim dt: " << dt << "\t"
@@ -271,23 +270,14 @@ int main(int argc, char **argv)
 				<< termcolor::reset
 				<< "Elapsed time: " << Clock2.getElapsedTime().asSeconds() << " sec\n" << std::endl;
 		}
-
+#endif //PRINT_DATA
 #if USE_CPP_PLOT
 		Canvas.clear(Color::Black);
 #if USE_CUDA
-		//CopyDataFromDeviceToHost(omega, omega_d, phi, phi_d, w, w_d);
-		//Real MinValue, MaxValue;
-		//GetMinMaxValues(GRID_SIZE, phi, MinValue, MaxValue);
-		//FillPixels(Pixels, Pixels_d, phi_d, MinValue, MaxValue, CudaDeviceProp);
 
-		CopyDataFromDeviceToHost(omega, omega_d);
-		Real MinValue = 0;
-		Real MaxValue = 0;
-		//GetMinMaxValues(GRID_SIZE, omega, MinValue, MaxValue);
-		FillPixels(Pixels, Pixels_d, omega_d, MinValue, MaxValue, CudaDeviceProp);
-#else
-		Plot(GRID_SIZE, Pixels, phi);
+		CopyDataFromDeviceToHost(phi, phi_d);
 #endif
+		Plot(GRID_SIZE, Pixels, phi);
 		DynamicTexture.update(Pixels);
 		Canvas.draw(SpriteDynamicTexture);
 		Canvas.display();

@@ -28,7 +28,7 @@ void WriteArray(sf::Uint32 GridSize, const Real * ArayToDebug, Real Time, const 
 
 	myfile << "GRID_SIZE=" << GRID_SIZE
 		<< "; REYNOLDS_NUMBER=" << REYNOLDS_NUMBER
-		<< "; DT=" << DT
+		<< "; DT=" << "Calculated" //DT
 		<< "; TIME=" << Time
 		<< std::endl;
 

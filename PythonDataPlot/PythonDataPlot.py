@@ -67,8 +67,7 @@ for PlotNum in xrange(4):
        
     f.close();
     
-    levels = np.linspace(MinValue, MaxValue*0.25, 100, endpoint=False);
-    levels = np.append(levels, np.linspace(MaxValue*0.25, MaxValue, 10));
+    levels = np.linspace(MinValue, MaxValue, 1000, endpoint=False);
 
     plt.subplot(2, 2, PlotNum+1);
     plt.title(PlotTittle);
