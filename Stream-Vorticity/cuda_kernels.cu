@@ -359,6 +359,7 @@ Real UpdateVorticity(
 
 	// Get an apropiate dt
 	Real dt = (8 * REYNOLDS_NUMBER * h * h) / (16 + u_v * u_v * REYNOLDS_NUMBER * REYNOLDS_NUMBER * h * h);
+	dt *= 3;
 
 	UpdateVorticity_kernel2 << <NumBlocks, ThreadsPerBlock >> >(omega_d, w_d, dt);
 	cudaDeviceSynchronize();

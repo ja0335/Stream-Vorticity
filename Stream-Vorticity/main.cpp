@@ -3,7 +3,9 @@
 #include "termcolor.h"
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
+#include <SFML/System.hpp>
 #include "Functions.h"
+#include "Particle.h"
 #ifdef USE_CUDA
 #include "cuda_kernels.h"
 #endif
@@ -37,6 +39,26 @@ int main(int argc, char **argv)
 	SpriteDynamicTexture.scale(SpriteScale, SpriteScale);
 	Uint64 PixelsBufferSize = PLOT_RESOLUTION * PLOT_RESOLUTION * 4;
 	Uint8* Pixels = new Uint8[PixelsBufferSize];	memset(Pixels, 0, PixelsBufferSize * sizeof(Uint8));
+
+
+
+	Vector2f WindowOffset = Vector2f(0.95f, 0.95f);
+	Vector2f WindowSize = Vector2f(window.getSize().x * WindowOffset.x, window.getSize().y * WindowOffset.y);
+	Vector2f ImageSize = Vector2f(static_cast<float>(Canvas.getSize().x), static_cast<float>(Canvas.getSize().y));
+
+	Sprite FinalSprite;
+	float FinalSpriteScale = (WindowSize.y) / ImageSize.y;
+	FinalSprite.scale(FinalSpriteScale, -FinalSpriteScale);
+
+	Vector2f FinalSpritePosition;
+	FinalSpritePosition.x = (WindowSize.x * 0.5f) / WindowOffset.x;
+	FinalSpritePosition.x -= (ImageSize.x * FinalSprite.getScale().x) * 0.5f;
+
+	FinalSpritePosition.y = (WindowSize.y * 0.5f) / WindowOffset.y;
+	FinalSpritePosition.y -= (ImageSize.y * FinalSprite.getScale().y) * 0.5f;
+
+	FinalSprite.move(FinalSpritePosition);
+
 #if USE_CUDA
 	Uint8* Pixels_d;
 	cudaMalloc((void **)&Pixels_d, PixelsBufferSize * sizeof(Uint8));		
@@ -73,6 +95,21 @@ int main(int argc, char **argv)
 	Real * phi =	new Real[GRID_SIZE * GRID_SIZE];		memset(phi, 0, SizeOfData);
 	Real * omega =	new Real[GRID_SIZE * GRID_SIZE];		memset(omega, 0, SizeOfData);
 	Real * w =		new Real[GRID_SIZE * GRID_SIZE];		memset(w, 0, SizeOfData);
+
+	Particle Particles[NUM_PARTICLES];
+	srand(static_cast <unsigned> (time(0)));
+
+	for (Uint32 i = 0; i < NUM_PARTICLES; i++)
+	{
+		float r_i = static_cast <float>(rand()) / static_cast <float> (RAND_MAX);
+		float r_j = static_cast <float>(rand()) / static_cast <float> (RAND_MAX);
+
+		Particles[i].SetParticle(
+			Vector2f(FinalSpritePosition.x, FinalSpritePosition.y - WindowSize.y),
+			Vector2f(window.getSize().x - FinalSpritePosition.x, FinalSpritePosition.y),
+			GRID_SIZE * r_i, GRID_SIZE * r_j,
+			u, v);
+	}
 
 #if USE_CUDA
 	// --------------------------------------------------------------------------------
@@ -276,8 +313,10 @@ int main(int argc, char **argv)
 #if USE_CUDA
 
 		CopyDataFromDeviceToHost(phi, phi_d);
+		CopyDataFromDeviceToHost(u, u_d);
+		CopyDataFromDeviceToHost(v, v_d);
 #endif
-		Plot(GRID_SIZE, Pixels, phi);
+		Plot(GRID_SIZE, Pixels, v);
 		DynamicTexture.update(Pixels);
 		Canvas.draw(SpriteDynamicTexture);
 		Canvas.display();
@@ -285,25 +324,11 @@ int main(int argc, char **argv)
 		// --------------------------------------------------------
 		// Draw the final image result
 		window.clear(Color::Black);
-
-		Vector2f WindowOffset = Vector2f(0.95f, 0.95f);
-		Vector2f WindowSize = Vector2f(window.getSize().x * WindowOffset.x, window.getSize().y * WindowOffset.y);
-		Vector2f ImageSize = Vector2f(static_cast<float>(Canvas.getSize().x), static_cast<float>(Canvas.getSize().y));
-		
-		Sprite FinalSprite;
 		FinalSprite.setTexture(Canvas.getTexture());
-		float FinalSpriteScale = (WindowSize.y) / ImageSize.y;
-		FinalSprite.scale(FinalSpriteScale, -FinalSpriteScale);
-
-		Vector2f position;
-		position.x = (WindowSize.x * 0.5f) / WindowOffset.x;
-		position.x -= (ImageSize.x * FinalSprite.getScale().x) * 0.5f;
-
-		position.y = (WindowSize.y * 0.5f) / WindowOffset.y;
-		position.y -= (ImageSize.y * FinalSprite.getScale().y) * 0.5f;
-
-		FinalSprite.move(position);
 		window.draw(FinalSprite);
+
+		for (Uint32 i = 0; i < NUM_PARTICLES; i++)
+			Particles[i].Update(window, dt);
 
 		// end the current frame
 		window.display();

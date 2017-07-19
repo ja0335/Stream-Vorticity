@@ -154,6 +154,7 @@
   <ItemGroup>
     <ClCompile Include="Functions.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Particle.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="cuda_kernels.cu" />
@@ -162,6 +163,7 @@
     <ClInclude Include="cuda_kernels.h" />
     <ClInclude Include="Functions.h" />
     <ClInclude Include="Macros.h" />
+    <ClInclude Include="Particle.h" />
     <ClInclude Include="termcolor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
