@@ -1,14 +1,23 @@
 #include <iostream>
 #include <sstream>
+
+#if defined(__unix__) || defined(__unix)
+
+#include <string.h>
+
+#endif
+
 #include "termcolor.h"
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
 #include "Functions.h"
 #include "Particle.h"
+
 #ifdef USE_CUDA
 #include "cuda_kernels.h"
 #endif
+
 using namespace sf;
 
 int main(int argc, char **argv)
@@ -82,6 +91,7 @@ int main(int argc, char **argv)
 	// SOR converges fastest for a square lattice if Beta = 2 / (1.0f + PI / N)
 	// where N is the number of lattice points in the x or y directions
 	Real Beta = 2.0f / (1.0f + (PI / GRID_SIZE));
+	//Real Beta = 1.0f - (2 * PI / GRID_SIZE);
 
 	// Spatial step
 	Real h = 1.0f / (Real)(GRID_SIZE - 1);
