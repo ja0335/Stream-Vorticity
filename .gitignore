@@ -45,6 +45,8 @@ x64/bin/Debug/Data/
 # Visual Studio things
 *.opensdf
 *.sdf
+*.suo
+*.ilk
 
 # Cuda things
 *.deps
