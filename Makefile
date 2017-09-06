@@ -12,6 +12,11 @@ SOURCES_CPP := $(wildcard $(SRC)/*.cpp)
 OBJECTS_CPP := $(patsubst $(SRC)/%.cpp, $(OBJ)/%.o, $(SOURCES_CPP))
 
 
+build: Stream-Vorticity.app move
+
+move: 
+	mv ./Stream-Vorticity.app x64/Release/Stream-Vorticity.app
+
 Stream-Vorticity.app: $(OBJECTS_CU) $(OBJECTS_CPP)
 	$(CC) -std=c++11 --gpu-architecture=sm_30 $^ -o $@ $(LIBS)
 
@@ -20,3 +25,10 @@ $(OBJ)/%.o: $(SRC)/%.cu
 
 $(OBJ)/%.o: $(SRC)/%.cpp
 	$(CC) -I$(SRC) -c -std=c++11 --gpu-architecture=sm_30 $< -o $@ $(LIBS)
+
+clean:
+	rm -rf Stream-Vorticity.app
+	rm -rf obj/*.o
+
+run:
+	./x64/Release/Stream-Vorticity.app
