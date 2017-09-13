@@ -23,3 +23,5 @@ x64/bin/Debug/Data/
 *.csv
 *.opensdf
 x64/Debug/Data/max.txt
+
+# end of file
