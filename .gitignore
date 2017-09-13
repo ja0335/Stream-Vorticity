@@ -1,74 +1,3 @@
-<<<<<<< HEAD
-# Visual Studio 2015 cache/options directory
-.vs/
-
-
-Stream-Vorticity/x64/Debug/
-Stream-Vorticity/Debug/
-Stream-Vorticity/x64/Release/
-Stream-Vorticity/Release/
-x64/bin/Release/Data/
-x64/bin/Debug/Data/
-
-# Prerequisites
-*.d
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Visual Studio things
-*.opensdf
-*.sdf
-*.suo
-*.ilk
-
-# Cuda things
-*.deps
-
-
-
-*.mp4
-*.userprefs
-*.sdf
-*.pdb
-*.user
-*.idb
-*.ipdb
-*.iobj
-*.iopendb
-*.opendb
-*.log
-*.csv
-*.opensdf
-x64/Debug/Data/max.txt
-=======
 # Visual Studio 2015 cache/options directory
 .vs/
 # Uncomment if you have tasks that create the project's static files in wwwroot
@@ -92,8 +21,9 @@ x64/bin/Debug/Data/
 *.opendb
 *.log
 *.csv
-*.opensdf
+x64/Release/Stream-Vorticity.app
+obj/main.o
+obj/Particle.o
 x64/Debug/Data/max.txt
-
-# end of file
->>>>>>> bdb23e5aa9b30bf4838b32c9a230abb4884531ce
+obj/Functions.o
+obj/cuda_kernels.o
