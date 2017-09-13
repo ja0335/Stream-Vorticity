@@ -21,3 +21,9 @@ x64/bin/Debug/Data/
 *.opendb
 *.log
 *.csv
+x64/Release/Stream-Vorticity.app
+obj/main.o
+obj/Particle.o
+x64/Debug/Data/max.txt
+obj/Functions.o
+obj/cuda_kernels.o
