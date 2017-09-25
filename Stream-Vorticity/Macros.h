@@ -9,7 +9,7 @@
 // dx = 0.005 = 201
 #define GRID_SIZE 201 
 #define LID_SPEED 1.0f
-#define REYNOLDS_NUMBER 701//9376.0f
+#define REYNOLDS_NUMBER 10000//9376.0f
 #define MAX_SOR_ITERATIONS 100
 #define SOR_TOLERANCE_ERROR 0.001f
 //#define DT 0.001f // time step

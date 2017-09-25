@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>6358dbbf-03ce-4d83-9fdb-c7746f688c9e</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>PythonDataPlot3D.py</StartupFile>
+    <StartupFile>Plot_phi.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,6 +22,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Plot_omega.py" />
+    <Compile Include="Plot_phi.py" />
     <Compile Include="PythonDataPlot.py" />
     <Compile Include="PythonDataPlot3D.py" />
     <Compile Include="PythonDataPlot_Anim.py">
