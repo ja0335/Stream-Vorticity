@@ -55,4 +55,10 @@ void FillPixels(
 	cudaDeviceProp CudaDeviceProp);
 
 
+void IsConvergent(
+	sf::Uint8 * bIsConvergent,
+	Real * PreviousData_d,
+	Real * CurrentData_d,
+	cudaDeviceProp CudaDeviceProp);
+
 #endif

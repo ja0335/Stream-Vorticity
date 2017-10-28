@@ -465,3 +465,41 @@ void FillPixels(
 
 	cudaMemcpy(Pixels_h, Pixels_d, GRID_SIZE * GRID_SIZE * 4 * sizeof(sf::Uint8), cudaMemcpyDeviceToHost);
 }
+
+__global__ void IsConvergent_kernel(
+	sf::Uint8 * bIsConvergent,
+	Real * PreviousData,
+	Real * CurrentData)
+{
+	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
+
+	if (idx >= GRID_SIZE * GRID_SIZE)
+		return;
+
+	Real dist = fabs(PreviousData[idx] - CurrentData[idx]);
+	if (bIsConvergent[0] == 1 && dist > CONVERGENCE_ERROR)
+		bIsConvergent[0] = 0;
+}
+
+/*
+* For each cell compares previous data with current data if the difference
+* in any comparison is greater than the tolerance then its assumed as not 
+* convergent.
+*/
+void IsConvergent(
+	sf::Uint8 * bIsConvergent,
+	Real * PreviousData_d,
+	Real * CurrentData_d,
+	cudaDeviceProp CudaDeviceProp)
+{
+	int NumBlocks = static_cast<int>(ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock)));
+	//We need at least 1 block
+	NumBlocks = (NumBlocks == 0) ? 1 : NumBlocks;
+
+	dim3 ThreadsPerBlock(
+		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)),
+		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)));
+
+	IsConvergent_kernel << <NumBlocks, ThreadsPerBlock >> >(bIsConvergent, PreviousData_d, CurrentData_d);
+	cudaDeviceSynchronize();
+}

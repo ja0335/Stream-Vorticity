@@ -106,6 +106,9 @@ int main(int argc, char **argv)
 	Real * omega =	new Real[GRID_SIZE * GRID_SIZE];		memset(omega, 0, SizeOfData);
 	Real * w =		new Real[GRID_SIZE * GRID_SIZE];		memset(w, 0, SizeOfData);
 
+	sf::Uint8 *bIsConvergent = new sf::Uint8[1];
+	*bIsConvergent = 0;
+
 	Particle Particles[NUM_PARTICLES];
 	srand(static_cast <unsigned> (time(0)));
 
@@ -134,24 +137,30 @@ int main(int argc, char **argv)
 	Real * u_d;
 	Real * v_d;
 	Real * max_d;
+	Real * prev_phi_d;
 	Real * phi_d;
 	Real * omega_d;
 	Real * w_d;
-	Uint8 * bIsConvergent_d;
+	sf::Uint8 * bIsSORConvergent_d;
+	sf::Uint8 * bIsConvergent_d;
 
-	cudaMalloc((void **)&u_d, SizeOfData);				cudaMemset(u_d, 0, SizeOfData);
-	cudaMalloc((void **)&v_d, SizeOfData);				cudaMemset(v_d, 0, SizeOfData);
-	cudaMalloc((void **)&max_d, SizeOfData);			cudaMemset(max_d, 0, SizeOfData);
-	cudaMalloc((void **)&phi_d, SizeOfData);			cudaMemset(phi_d, 0, SizeOfData);
-	cudaMalloc((void **)&omega_d, SizeOfData);			cudaMemset(omega_d, 0, SizeOfData);
-	cudaMalloc((void **)&w_d, SizeOfData);				cudaMemset(w_d, 0, SizeOfData);
-	cudaMalloc((void **)&bIsConvergent_d, sizeof(Uint8)); cudaMemset(bIsConvergent_d, 0, sizeof(Uint8));
+	cudaMalloc((void **)&u_d, SizeOfData);							cudaMemset(u_d, 0, SizeOfData);
+	cudaMalloc((void **)&v_d, SizeOfData);							cudaMemset(v_d, 0, SizeOfData);
+	cudaMalloc((void **)&max_d, SizeOfData);						cudaMemset(max_d, 0, SizeOfData);
+	cudaMalloc((void **)&prev_phi_d, SizeOfData);					cudaMemset(prev_phi_d, 0, SizeOfData);
+	cudaMalloc((void **)&phi_d, SizeOfData);						cudaMemset(phi_d, 0, SizeOfData);
+	cudaMalloc((void **)&omega_d, SizeOfData);						cudaMemset(omega_d, 0, SizeOfData);
+	cudaMalloc((void **)&w_d, SizeOfData);							cudaMemset(w_d, 0, SizeOfData);
+	cudaMalloc((void **)&bIsSORConvergent_d, sizeof(sf::Uint8));	cudaMemset(bIsSORConvergent_d, 1, sizeof(sf::Uint8));
+	cudaMalloc((void **)&bIsConvergent_d, sizeof(sf::Uint8));		cudaMemset(bIsConvergent_d, 1, sizeof(sf::Uint8));
 #endif
 
 	// run the program as long as the window is open
+	bool bProblemConvergenceReached = false;
 	bool bSimulateNextFrame = false;
 	bool bUseKeyToSimulate = true;
 	Uint64 CurrentStep = 0;
+	Uint64 CurrentStepForConvergence = 0; 
 	Real SimulationTime = 0.0f;
 	Clock Clock1;
 	Clock Clock2;
@@ -197,34 +206,62 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (bUseKeyToSimulate && !bSimulateNextFrame)
+		if (bProblemConvergenceReached || bUseKeyToSimulate && !bSimulateNextFrame)
 			continue;
 
 #if 1 // Stream-Vorticity Calculation
 
 #if USE_CUDA
+		
+		cudaMemcpy(prev_phi_d, phi_d, SizeOfData, cudaMemcpyDeviceToDevice);
 		// -------------------------------------------------------------------------
 		// streamfunction calculation by SOR iteration
-		Uint8 * bIsConvergent_h = new Uint8[1];
-		bIsConvergent_h[0] = 1;
-		cudaMemcpy(bIsConvergent_h, bIsConvergent_d, sizeof(bool), cudaMemcpyDeviceToHost);
+		sf::Uint8 *bIsSORConvergent_h = new sf::Uint8[1];
+		*bIsSORConvergent_h = 1;
 
 		for (Uint64 it = 0; it < 100; ++it)
 		{
-			SOR(bIsConvergent_d, omega_d, phi_d, w_d, h, Beta, CudaDeviceProp);
-			cudaMemcpy(bIsConvergent_h, bIsConvergent_d, sizeof(bool), cudaMemcpyDeviceToHost);
+			SOR(bIsSORConvergent_d, omega_d, phi_d, w_d, h, Beta, CudaDeviceProp);
+			cudaMemcpy(bIsSORConvergent_h, bIsSORConvergent_d, sizeof(sf::Uint8), cudaMemcpyDeviceToHost);
 
-			if (bIsConvergent_h[0] == 1)
+			if (*bIsSORConvergent_h == 1)
 			{
-				//std::cout << "Convergence at iteration " << it << std::endl;
+				//std::cout << "SOR Convergence at iteration " << it << std::endl;
 				break;
 			}
 
-			bIsConvergent_h[0] = 1;
-			cudaMemset(bIsConvergent_d, 1, sizeof(Uint8));
+			*bIsSORConvergent_h = 1;
+			cudaMemset(bIsSORConvergent_d, 1, sizeof(sf::Uint8));
 		}
 
+		delete[] bIsSORConvergent_h;
+
 		Real dt = UpdateVorticity(omega_d, u_d, v_d, max_d, max, phi_d, w_d, h, Viscocity, CudaDeviceProp);
+
+		// Check general problem convergence
+		if (CurrentStep > 5)
+		{
+			IsConvergent(bIsConvergent_d, prev_phi_d, phi_d, CudaDeviceProp);
+			cudaMemcpy(bIsConvergent, bIsConvergent_d, sizeof(sf::Uint8), cudaMemcpyDeviceToHost);
+
+			if (*bIsConvergent == 1)
+			{
+				++CurrentStepForConvergence;
+			}
+			else
+			{
+				*bIsConvergent = 1;
+				cudaMemset(bIsConvergent_d, 1, sizeof(sf::Uint8));
+				CurrentStepForConvergence = 0;
+			}
+		}
+
+		
+		if (CurrentStepForConvergence == SUCCESIVE_STEPS_FOR_CONVERGENCE)
+		{
+			std::cout << "Problem convergence reached at iteration " << CurrentStep << std::endl;
+			bProblemConvergenceReached = true;
+		}
 
 #else
 		// -------------------------------------------------------------------------
@@ -320,7 +357,7 @@ int main(int argc, char **argv)
 
 		// increment the time
 		SimulationTime += dt;
-		CurrentStep++;
+		++CurrentStep;
 #endif
 #if PRINT_DATA
 		{
@@ -341,8 +378,10 @@ int main(int argc, char **argv)
 		CopyDataFromDeviceToHost(phi, phi_d);
 		CopyDataFromDeviceToHost(u, u_d);
 		CopyDataFromDeviceToHost(v, v_d);
+
+
 #endif
-		Plot(GRID_SIZE, Pixels, phi);
+		Plot(GRID_SIZE, Pixels, u);
 		DynamicTexture.update(Pixels);
 		Canvas.draw(SpriteDynamicTexture);
 		Canvas.display();
@@ -353,7 +392,7 @@ int main(int argc, char **argv)
 		FinalSprite.setTexture(Canvas.getTexture());
 		window.draw(FinalSprite);
 
-		for (Uint32 i = 0; i < NUM_PARTICLES; i++)
+		for (Uint32 i = 0; i < NUM_PARTICLES; ++i)
 			Particles[i].Update(window, dt);
 
 		// end the current frame
@@ -366,8 +405,11 @@ int main(int argc, char **argv)
 	cudaFree(v_d);
 	cudaFree(max_d);
 	cudaFree(phi_d);
+	cudaFree(prev_phi_d);
 	cudaFree(omega_d);
 	cudaFree(w_d);
+	cudaFree(bIsSORConvergent_d);
+	cudaFree(bIsConvergent_d);
 #endif
 #if USE_CPP_PLOT
 	delete[] Pixels;
@@ -381,6 +423,7 @@ int main(int argc, char **argv)
 	delete[] phi;
 	delete[] omega;
 	delete[] w;
+	delete[] bIsConvergent;
 
 	return 0;
 }
