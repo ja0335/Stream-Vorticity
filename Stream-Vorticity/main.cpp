@@ -137,13 +137,15 @@ int main(int argc, char **argv)
 	Real * phi_d;
 	Real * omega_d;
 	Real * w_d;
+	Uint8 * bIsConvergent_d;
 
-	cudaMalloc((void **)&u_d, SizeOfData);		cudaMemset(u_d, 0, SizeOfData);
-	cudaMalloc((void **)&v_d, SizeOfData);		cudaMemset(v_d, 0, SizeOfData);
-	cudaMalloc((void **)&max_d, SizeOfData);	cudaMemset(max_d, 0, SizeOfData);
-	cudaMalloc((void **)&phi_d, SizeOfData);	cudaMemset(phi_d, 0, SizeOfData);
-	cudaMalloc((void **)&omega_d, SizeOfData);	cudaMemset(omega_d, 0, SizeOfData);
-	cudaMalloc((void **)&w_d, SizeOfData);		cudaMemset(w_d, 0, SizeOfData);
+	cudaMalloc((void **)&u_d, SizeOfData);				cudaMemset(u_d, 0, SizeOfData);
+	cudaMalloc((void **)&v_d, SizeOfData);				cudaMemset(v_d, 0, SizeOfData);
+	cudaMalloc((void **)&max_d, SizeOfData);			cudaMemset(max_d, 0, SizeOfData);
+	cudaMalloc((void **)&phi_d, SizeOfData);			cudaMemset(phi_d, 0, SizeOfData);
+	cudaMalloc((void **)&omega_d, SizeOfData);			cudaMemset(omega_d, 0, SizeOfData);
+	cudaMalloc((void **)&w_d, SizeOfData);				cudaMemset(w_d, 0, SizeOfData);
+	cudaMalloc((void **)&bIsConvergent_d, sizeof(Uint8)); cudaMemset(bIsConvergent_d, 0, sizeof(Uint8));
 #endif
 
 	// run the program as long as the window is open
@@ -203,9 +205,23 @@ int main(int argc, char **argv)
 #if USE_CUDA
 		// -------------------------------------------------------------------------
 		// streamfunction calculation by SOR iteration
-		for (Uint64 it = 0; it < 1; it++)
+		Uint8 * bIsConvergent_h = new Uint8[1];
+		bIsConvergent_h[0] = 1;
+		cudaMemcpy(bIsConvergent_h, bIsConvergent_d, sizeof(bool), cudaMemcpyDeviceToHost);
+
+		for (Uint64 it = 0; it < 100; ++it)
 		{
-			SOR(omega_d, phi_d, w_d, h, Beta, CudaDeviceProp);
+			SOR(bIsConvergent_d, omega_d, phi_d, w_d, h, Beta, CudaDeviceProp);
+			cudaMemcpy(bIsConvergent_h, bIsConvergent_d, sizeof(bool), cudaMemcpyDeviceToHost);
+
+			if (bIsConvergent_h[0] == 1)
+			{
+				//std::cout << "Convergence at iteration " << it << std::endl;
+				break;
+			}
+
+			bIsConvergent_h[0] = 1;
+			cudaMemset(bIsConvergent_d, 1, sizeof(Uint8));
 		}
 
 		Real dt = UpdateVorticity(omega_d, u_d, v_d, max_d, max, phi_d, w_d, h, Viscocity, CudaDeviceProp);
@@ -326,7 +342,7 @@ int main(int argc, char **argv)
 		CopyDataFromDeviceToHost(u, u_d);
 		CopyDataFromDeviceToHost(v, v_d);
 #endif
-		Plot(GRID_SIZE, Pixels, v);
+		Plot(GRID_SIZE, Pixels, phi);
 		DynamicTexture.update(Pixels);
 		Canvas.draw(SpriteDynamicTexture);
 		Canvas.display();

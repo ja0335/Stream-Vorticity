@@ -32,7 +32,7 @@ void CopyDataFromDeviceToHost(
 	Real * w,
 	Real * w_d);
 
-void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp);
+void SOR(sf::Uint8 * bIsConvergent, Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp);
 
 Real UpdateVorticity(
 	Real * omega_d,
@@ -53,5 +53,6 @@ void FillPixels(
 	Real MinValue,
 	Real MaxValue,
 	cudaDeviceProp CudaDeviceProp);
+
 
 #endif

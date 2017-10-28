@@ -1,6 +1,6 @@
 #include <iostream>
 #include "cuda_kernels.h"
-
+#include "math_functions.h"
 #include "Functions.h"
 
 void DeviceQuery()
@@ -182,7 +182,7 @@ void CopyDataFromDeviceToHost(
 }
 
 // -------------------------------------------------------------------------
-__global__ void SOR_Even_kernel(Real * omega, Real * phi, Real * w, Real h, Real Beta)
+__global__ void SOR_Even_kernel(sf::Uint8 * bIsConvergent, Real * omega, Real * phi, Real * w, Real h, Real Beta)
 {
 	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
 
@@ -197,10 +197,14 @@ __global__ void SOR_Even_kernel(Real * omega, Real * phi, Real * w, Real h, Real
 		idx % GRID_SIZE != 0 && (idx + 1) % GRID_SIZE != 0)
 	{
 		phi[idx] = 0.25f*Beta*(phi[idx + 1] + phi[idx - 1] + phi[idx + GRID_SIZE] + phi[idx - GRID_SIZE] + h*h*omega[idx]) + (1.0f - Beta)*phi[idx];
+
+		Real dist = fabs(w[idx] - phi[idx]);
+		if (bIsConvergent[0] == 1 && dist > SOR_TOLERANCE_ERROR)
+			bIsConvergent[0] = 0;
 	}
 }
 
-__global__ void SOR_Odd_kernel(Real * omega, Real * phi, Real * w, Real h, Real Beta)
+__global__ void SOR_Odd_kernel(sf::Uint8 * bIsConvergent, Real * omega, Real * phi, Real * w, Real h, Real Beta)
 {
 	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
 
@@ -215,10 +219,14 @@ __global__ void SOR_Odd_kernel(Real * omega, Real * phi, Real * w, Real h, Real 
 		idx % GRID_SIZE != 0 && (idx + 1) % GRID_SIZE != 0)
 	{
 		phi[idx] = 0.25f*Beta*(phi[idx + 1] + phi[idx - 1] + phi[idx + GRID_SIZE] + phi[idx - GRID_SIZE] + h*h*omega[idx]) + (1.0f - Beta)*phi[idx];
+
+		Real dist = fabs(w[idx] - phi[idx]);
+		if (bIsConvergent[0] == 1 && dist > SOR_TOLERANCE_ERROR)
+			bIsConvergent[0] = 0;
 	}
 }
 
-void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp)
+void SOR(sf::Uint8 * bIsConvergent, Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDeviceProp CudaDeviceProp)
 {
 	int NumBlocks = static_cast<int>(ceil((GRID_SIZE * GRID_SIZE) / static_cast<Real>(CudaDeviceProp.maxThreadsPerBlock)));
 	//We need at least 1 block
@@ -228,9 +236,9 @@ void SOR(Real * omega_d, Real * phi_d, Real * w_d, Real h, Real Beta, cudaDevice
 		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)), 
 		static_cast<unsigned int>(sqrt(CudaDeviceProp.maxThreadsPerBlock)));
 
-	SOR_Even_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, w_d, h, Beta);
+	SOR_Even_kernel << <NumBlocks, ThreadsPerBlock >> >(bIsConvergent, omega_d, phi_d, w_d, h, Beta);
 	cudaDeviceSynchronize();
-	SOR_Odd_kernel << <NumBlocks, ThreadsPerBlock >> >(omega_d, phi_d, w_d, h, Beta);
+	SOR_Odd_kernel << <NumBlocks, ThreadsPerBlock >> >(bIsConvergent, omega_d, phi_d, w_d, h, Beta);
 	cudaDeviceSynchronize();
 }
 

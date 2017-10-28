@@ -19,6 +19,7 @@ x64/bin/Debug/Data/
 *.iobj
 *.iopendb
 *.opendb
+*.opensdf
 *.log
 *.csv
 x64/Release/Stream-Vorticity.app
