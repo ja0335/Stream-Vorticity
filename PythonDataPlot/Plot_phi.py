@@ -79,7 +79,7 @@ basepath = os.path.dirname(__file__)
 fig = plt.figure()
 
 Build = "Release"; #"Release";
-filepath = os.path.abspath(os.path.join(basepath, "..", "x64/" + Build + "/Data/phi.csv"));
+filepath = os.path.abspath(os.path.join(basepath, "..", "x64/" + Build + "/Data/phi_12500.csv"));
         
 f = open(filepath)
 line = f.readline()
@@ -157,6 +157,6 @@ for i in xrange(NumAgents):
 
 np.savetxt('Vortex.csv', Vortex, delimiter=';');
 
-plt.imshow(Vortex);
+plt.imshow(Vortex,cmap=cm.gray);
 
 plt.show()

@@ -112,6 +112,8 @@ int main(int argc, char **argv)
 	Particle Particles[NUM_PARTICLES];
 	srand(static_cast <unsigned> (time(0)));
 
+
+#if USE_CPP_PLOT
 	for (Uint32 i = 0; i < NUM_PARTICLES; i++)
 	{
 		float r_i = static_cast <float>(rand()) / static_cast <float> (RAND_MAX);
@@ -123,6 +125,7 @@ int main(int argc, char **argv)
 			GRID_SIZE * r_i, GRID_SIZE * r_j,
 			u, v);
 	}
+#endif
 
 #if USE_CUDA
 	// --------------------------------------------------------------------------------
@@ -188,20 +191,21 @@ int main(int argc, char **argv)
 				CopyDataFromDeviceToHost(omega, omega_d, u, u_d, v, v_d, phi, phi_d, w, w_d);
 #endif
 				std::stringstream ss_u;
-				WriteArray(GRID_SIZE, u, SimulationTime, "Data/u.csv");
+				ss_u << "Data/u_" << REYNOLDS_NUMBER << ".csv";
+				WriteArray(GRID_SIZE, u, SimulationTime, ss_u.str().c_str());
 
 				std::stringstream ss_v;
-				WriteArray(GRID_SIZE, v, SimulationTime, "Data/v.csv");
+				ss_v << "Data/v_" << REYNOLDS_NUMBER << ".csv";
+				WriteArray(GRID_SIZE, v, SimulationTime, ss_v.str().c_str());
 
 				std::stringstream ss_phi;
-				//ss_phi << "phi_" << CurrentStep << ".csv";
-				//WriteArray(GRID_SIZE, phi, ss_phi.str().c_str());
-				WriteArray(GRID_SIZE, phi, SimulationTime, "Data/phi.csv");
+				ss_phi << "Data/phi_" << REYNOLDS_NUMBER << ".csv";
+				WriteArray(GRID_SIZE, phi, SimulationTime, ss_phi.str().c_str());
 
 				std::stringstream ss_omega;
-				//ss_omega << "omega_" << CurrentStep << ".csv";
-				//WriteArray(GRID_SIZE, omega, ss_omega.str().c_str());
-				WriteArray(GRID_SIZE, omega, SimulationTime, "Data/omega.csv");
+				ss_omega << "Data/omega_" << REYNOLDS_NUMBER << ".csv";
+				WriteArray(GRID_SIZE, omega, SimulationTime, ss_omega.str().c_str());
+
 				std::cout << "****Finished Writing Data*****" << std::endl;
 			}
 		}
@@ -358,6 +362,11 @@ int main(int argc, char **argv)
 		// increment the time
 		SimulationTime += dt;
 		++CurrentStep;
+
+#if USE_CPP_PLOT == 0
+		std::cout << "Current Step: " << CurrentStep << std::endl;
+#endif
+
 #endif
 #if PRINT_DATA
 		{
@@ -381,7 +390,7 @@ int main(int argc, char **argv)
 
 
 #endif
-		Plot(GRID_SIZE, Pixels, u);
+		Plot(GRID_SIZE, Pixels, v);
 		DynamicTexture.update(Pixels);
 		Canvas.draw(SpriteDynamicTexture);
 		Canvas.display();

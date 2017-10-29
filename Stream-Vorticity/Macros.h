@@ -3,23 +3,19 @@
 
 #define PI 3.14159265358979323846f
 
-// dx = 0.1 => 11
-// dx = 0.05 => 21
-// dx = 0.01 => 100
-// dx = 0.005 = 201
-#define GRID_SIZE 201 
+#define GRID_SIZE 301 
 #define LID_SPEED 1.0f
-#define REYNOLDS_NUMBER 9376.0f
+#define REYNOLDS_NUMBER 12500
+#define USE_CPP_PLOT 0
 #define MAX_SOR_ITERATIONS 100
 #define SOR_TOLERANCE_ERROR 0.00001f
 #define CONVERGENCE_ERROR 0.000001f
 #define SUCCESIVE_STEPS_FOR_CONVERGENCE 100 // how much steps of convergence error to assume problem has converged
-//#define DT 0.001f // time step
+
 
 #define CAPTURE_DATA 0
 #define PRINT_DATA 0
 #define SINGLE_PRECISION 0
-#define USE_CPP_PLOT 1
 #define PLOT_RESOLUTION GRID_SIZE
 #define USE_CUDA 1
 #define USE_DYE 0
