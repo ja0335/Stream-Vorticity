@@ -376,45 +376,6 @@ Real UpdateVorticity(
 }
 
 // -------------------------------------------------------------------------
-__global__ void TransportDye_kernel(const sf::Uint8* DyeBackBuffer, sf::Uint8* DyeFrontBuffer, const Real * u)
-{
-	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
-
-	if (idx >= GRID_SIZE * GRID_SIZE)
-		return;
-
-	if (idx >= GRID_SIZE && idx < GRID_SIZE * GRID_SIZE - GRID_SIZE
-		&&
-		idx % GRID_SIZE != 0 && (idx + 1) % GRID_SIZE != 0)
-	{
-		//sf::Uint8 X = (idx % GRID_SIZE) + 1;
-		DyeFrontBuffer[idx * 4 + 0] = DyeBackBuffer[idx * 8 + 0];
-		DyeFrontBuffer[idx * 4 + 1] = DyeBackBuffer[idx * 8 + 1];
-		DyeFrontBuffer[idx * 4 + 2] = DyeBackBuffer[idx * 8 + 2];
-		DyeFrontBuffer[idx * 4 + 3] = DyeBackBuffer[idx * 8 + 3];
-	}
-}
-
-__global__ void SwapDyeBuffers_kernel(sf::Uint8* DyeBackBuffer, const sf::Uint8* DyeFrontBuffer)
-{
-	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
-
-	if (idx >= GRID_SIZE * GRID_SIZE)
-		return;
-
-	if (idx >= GRID_SIZE && idx < GRID_SIZE * GRID_SIZE - GRID_SIZE
-		&&
-		idx % GRID_SIZE != 0 && (idx + 1) % GRID_SIZE != 0)
-	{
-		//sf::Uint8 X = (idx % GRID_SIZE) + 1;
-		DyeBackBuffer[idx * 4 + 0] = DyeFrontBuffer[idx * 4 + 0];
-		DyeBackBuffer[idx * 4 + 1] = DyeFrontBuffer[idx * 4 + 1];
-		DyeBackBuffer[idx * 4 + 2] = DyeFrontBuffer[idx * 4 + 2];
-		DyeBackBuffer[idx * 4 + 3] = DyeFrontBuffer[idx * 4 + 3];
-	}
-}
-
-// -------------------------------------------------------------------------
 __global__ void FillPixels_kernel(sf::Uint8* Pixels, const Real * InData, Real MinValue, Real MaxValue)
 {
 	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
