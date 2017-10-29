@@ -243,7 +243,7 @@ void SOR(sf::Uint8 * bIsConvergent, Real * omega_d, Real * phi_d, Real * w_d, Re
 }
 
 // -------------------------------------------------------------------------
-__global__ void UpdateVorticity_kernel1(Real * omega, Real * u, Real * v, Real * sum, Real * phi, Real * w, Real h, Real Viscocity)
+__global__ void UpdateVorticity_kernel1(Real * omega, Real * u, Real * v, Real * max, Real * phi, Real * w, Real h, Real Viscocity)
 {
 	int idx = (blockIdx.x * blockDim.x * blockDim.y) + (threadIdx.x + blockDim.x * threadIdx.y);
 
@@ -275,7 +275,7 @@ __global__ void UpdateVorticity_kernel1(Real * omega, Real * u, Real * v, Real *
 				   + v[idx] * ((omega[idx + GRID_SIZE] - omega[idx - GRID_SIZE]) / (2 * h)))
 			+ Viscocity * (omega[idx + 1] + omega[idx - 1] + omega[idx + GRID_SIZE] + omega[idx - GRID_SIZE] - 4.0f*omega[idx]) / (h*h);
 		
-		sum[idx] = u[idx] + v[idx];
+		max[idx] = u[idx] + v[idx];
 	}
 }
 
